@@ -5,18 +5,21 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.ToString;
-import org.epam.model.TrainingType;
-
-import java.util.List;
 
 @Getter
 @ToString
 @EqualsAndHashCode
 @AllArgsConstructor
-public class TrainerDto {
+public class UserDtoOutput {
 
-    private List<TrainingType> specialization;
+    private Long id;
 
-    @NonNull
-    private Long userId;
+    private String firstName;
+
+    private String lastName;
+
+    private String userName;
+
+    private Boolean isActive;
+
 }

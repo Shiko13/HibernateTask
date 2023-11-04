@@ -3,25 +3,24 @@ package org.epam.model.dto;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.NonNull;
 import lombok.ToString;
+
+import java.util.List;
 
 @Getter
 @ToString
 @EqualsAndHashCode
+@NoArgsConstructor
 @AllArgsConstructor
-public class UserDto {
+public class TrainerDtoInput {
 
     @NonNull
-    private String firstName;
+    private Long trainingTypeId;
 
     @NonNull
-    private String lastName;
+    private Long userId;
 
-    @NonNull
-    private String userName;
-
-    @NonNull
-    private Boolean isActive;
-
+    private List<Long> traineeIds;
 }

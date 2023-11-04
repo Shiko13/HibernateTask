@@ -20,30 +20,43 @@ VALUES
     ('Alexander', 'Hall', 'alexander.hall', 'password18', true),
     ('Mia', 'Wright', 'mia.wright', 'password19', true),
     ('Joseph', 'Adams', 'joseph.adams', 'password20', true);
-INSERT INTO trainees (date_of_birth, address, user_id) VALUES
-                                                           ('1995-03-15', '123 Main St', 1),
-                                                           ('1992-08-20', '456 Elm St', 2),
-                                                           ('1990-04-10', '789 Oak St', 3),
-                                                           ('1998-12-05', '555 Pine St', 4),
-                                                           ('1994-07-28', '777 Birch St', 5),
-                                                           ('1997-09-14', '888 Cedar St', 6),
-                                                           ('1999-06-09', '999 Redwood St', 7),
-                                                           ('1993-02-25', '111 Maple St', 8),
-                                                           ('1996-11-03', '222 Willow St', 9),
-                                                           ('1991-01-01', '333 Birch St', 10);
 
-INSERT INTO trainers (user_id) VALUES (11), (12), (13), (14), (15), (16), (17), (18), (19), (20);
-INSERT INTO training_types (name, trainer_id) VALUES
-    ('Strength Training', 1),
-    ('Cardiovascular Exercise', 2),
-    ('Yoga', 3),
-    ('CrossFit', 4),
-    ('Pilates', 5),
-    ('Martial Arts', 6),
-    ('Zumba', 7),
-    ('Spinning', 8),
-    ('Swimming', 9),
-    ('Plyometrics', 10);
+INSERT INTO training_types (name) VALUES
+                                      ('Strength Training'),
+                                      ('Cardiovascular Exercise'),
+                                      ('Yoga'),
+                                      ('CrossFit'),
+                                      ('Pilates'),
+                                      ('Martial Arts'),
+                                      ('Zumba'),
+                                      ('Spinning'),
+                                      ('Swimming'),
+                                      ('Plyometrics');
+
+INSERT INTO trainees (date_of_birth, address, user_id) VALUES
+    ('1995-03-15', '123 Main St', 1),
+    ('1992-08-20', '456 Elm St', 2),
+    ('1990-04-10', '789 Oak St', 3),
+    ('1998-12-05', '555 Pine St', 4),
+    ('1994-07-28', '777 Birch St', 5),
+    ('1997-09-14', '888 Cedar St', 6),
+    ('1999-06-09', '999 Redwood St', 7),
+    ('1993-02-25', '111 Maple St', 8),
+    ('1996-11-03', '222 Willow St', 9),
+    ('1991-01-01', '333 Birch St', 10);
+
+INSERT INTO trainers (specialization, user_id) VALUES
+        (1, 11),
+        (2, 12),
+        (3, 13),
+        (4, 14),
+        (5, 15),
+        (6, 16),
+        (7, 17),
+        (8, 18),
+        (9, 19),
+        (10, 20);
+
 INSERT INTO trainings (trainee_id, trainer_id, name, type_id, date, duration)
 VALUES
     (1, 1, 'Training 1', 1, '2023-11-01', 60),
@@ -56,3 +69,23 @@ VALUES
     (8, 8, 'Training 8', 8, '2023-11-08', 75),
     (9, 9, 'Training 9', 9, '2023-11-09', 60),
     (10, 10, 'Training 10', 10, '2023-11-10', 45);
+
+INSERT INTO trainee_trainer (trainee_id, trainer_id) VALUES
+      (1, 1),
+      (1, 2),
+      (2, 1),
+      (3, 2),
+      (4, 10),
+      (5, 9),
+      (4, 7),
+      (6, 8),
+      (7, 6),
+      (8, 5),
+      (9, 3),
+      (10, 4),
+      (1, 5),
+      (2, 7),
+      (5, 8),
+      (3, 5),
+      (3, 8)
+;

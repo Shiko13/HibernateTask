@@ -1,34 +1,34 @@
 package org.epam.model.dto;
 
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
-import lombok.NonNull;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import lombok.ToString;
-
 import java.time.LocalDate;
 
 @Getter
+@Setter
 @ToString
+@Builder
 @EqualsAndHashCode
+@NoArgsConstructor
 @AllArgsConstructor
-public class TrainingDto {
+public class TrainingDtoOutput {
 
-    @NonNull
+    private Long id;
+
     private Long traineeId;
 
-    @NonNull
     private Long trainerId;
 
-    @NonNull
     private String name;
 
-    @NonNull
-    private Long trainingTypeId;
+    private Long typeId;
 
-    @NonNull
     private LocalDate date;
 
-    @NonNull
     private Long duration;
 }
