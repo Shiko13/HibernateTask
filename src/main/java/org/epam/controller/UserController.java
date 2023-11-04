@@ -17,7 +17,7 @@ public class UserController {
     private final UserService userService;
 
     @PostMapping()
-    UserDtoOutput save(@RequestBody UserDtoInput userDtoInput) {
+    public UserDtoOutput save(@RequestBody UserDtoInput userDtoInput) {
         return userService.save(userDtoInput);
     }
 }

@@ -1,7 +1,6 @@
 package org.epam.mapper;
 
 import org.epam.model.Training;
-import org.epam.model.dto.TrainerDtoInput;
 import org.epam.model.dto.TrainingDtoInput;
 import org.epam.model.dto.TrainingDtoOutput;
 import org.mapstruct.Mapper;

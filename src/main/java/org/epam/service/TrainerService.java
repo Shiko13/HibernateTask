@@ -1,10 +1,9 @@
 package org.epam.service;
 
-import org.epam.model.Trainer;
-import org.epam.model.dto.TraineeDtoInput;
-import org.epam.model.dto.TraineeDtoOutput;
 import org.epam.model.dto.TrainerDtoInput;
 import org.epam.model.dto.TrainerDtoOutput;
+
+import java.util.List;
 
 public interface TrainerService {
 
@@ -14,7 +13,9 @@ public interface TrainerService {
 
     TrainerDtoOutput changePassword(String userName, String oldPassword, String newPassword);
 
-    TrainerDtoOutput update(String userName, String password, TrainerDtoInput trainerDtoInput);
+    TrainerDtoOutput updateProfile(String userName, String password, TrainerDtoInput trainerDtoInput);
 
     TrainerDtoOutput switchActivate(String userName, String password);
+
+    List<TrainerDtoOutput> getTrainersWithEmptyTrainees();
 }

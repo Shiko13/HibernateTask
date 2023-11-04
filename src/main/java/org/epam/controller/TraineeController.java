@@ -22,39 +22,40 @@ public class TraineeController {
     private final TraineeService traineeService;
 
     @GetMapping("/username")
-    TraineeDtoOutput getByUserName(@RequestParam String userName, @RequestParam String password) {
+    public TraineeDtoOutput getByUserName(@RequestParam String userName, @RequestParam String password) {
         return traineeService.getByUserName(userName, password);
     }
 
     @PostMapping()
-    TraineeDtoOutput save(@RequestBody TraineeDtoInput traineeDtoInput) {
+    public TraineeDtoOutput save(@RequestBody TraineeDtoInput traineeDtoInput) {
         return traineeService.save(traineeDtoInput);
     }
 
     @PutMapping("/password")
-    TraineeDtoOutput changePassword(@RequestParam String userName,
-                           @RequestParam String oldPassword,
-                           @RequestParam String newPassword) {
+    public TraineeDtoOutput changePassword(@RequestParam String userName, @RequestParam String oldPassword,
+                                           @RequestParam String newPassword) {
         return traineeService.changePassword(userName, oldPassword, newPassword);
     }
 
-    @PutMapping
-    TraineeDtoOutput update(@RequestParam String userName,
-                                    @RequestParam String password,
-                                    @RequestBody TraineeDtoInput traineeDtoInput) {
-        return traineeService.update(userName, password, traineeDtoInput);
+    @PutMapping("/profile")
+    public TraineeDtoOutput updateProfile(@RequestParam String userName, @RequestParam String password,
+                                          @RequestBody TraineeDtoInput traineeDtoInput) {
+        return traineeService.updateProfile(userName, password, traineeDtoInput);
+    }
+
+    @PutMapping("/trainer-list")
+    public TraineeDtoOutput updateTrainerList(@RequestParam String userName, @RequestParam String password,
+                                              @RequestBody TraineeDtoInput traineeDtoInput) {
+        return traineeService.updateTrainerList(userName, password, traineeDtoInput);
     }
 
     @PutMapping("/activate")
-    TraineeDtoOutput switchActivate(@RequestParam String userName,
-                            @RequestParam String password) {
+    public TraineeDtoOutput switchActivate(@RequestParam String userName, @RequestParam String password) {
         return traineeService.switchActivate(userName, password);
     }
 
     @DeleteMapping()
-    ResponseEntity<Void> deleteByUsername(@RequestParam String userName,
-                                          @RequestParam String password) {
-
+    public ResponseEntity<Void> deleteByUsername(@RequestParam String userName, @RequestParam String password) {
         traineeService.deleteByUsername(userName, password);
         return ResponseEntity.noContent().build();
     }

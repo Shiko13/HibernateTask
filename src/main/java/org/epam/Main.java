@@ -15,16 +15,13 @@ public class Main {
 
         Context tomcatContext = tomcat.addContext("", null);
 
-        AnnotationConfigWebApplicationContext applicationContext =
-                new AnnotationConfigWebApplicationContext();
+        AnnotationConfigWebApplicationContext applicationContext = new AnnotationConfigWebApplicationContext();
         applicationContext.scan("org.epam");
         applicationContext.setServletContext(tomcatContext.getServletContext());
         applicationContext.refresh();
 
-        // добавляем диспетчер запросов
         DispatcherServlet dispatcherServlet = new DispatcherServlet(applicationContext);
-        Wrapper dispatcherWrapper =
-                Tomcat.addServlet(tomcatContext, "dispatcher", dispatcherServlet);
+        Wrapper dispatcherWrapper = Tomcat.addServlet(tomcatContext, "dispatcher", dispatcherServlet);
         dispatcherWrapper.addMapping("/");
         dispatcherWrapper.setLoadOnStartup(1);
 

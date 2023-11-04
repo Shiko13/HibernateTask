@@ -1,6 +1,7 @@
 package org.epam.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.epam.mapper.UserMapper;
 import org.epam.model.User;
 import org.epam.model.dto.UserDtoInput;
@@ -9,9 +10,11 @@ import org.epam.repo.UserRepo;
 import org.epam.util.RandomStringGenerator;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
@@ -22,8 +25,11 @@ public class UserServiceImpl implements UserService {
     int passwordLength;
 
     @Override
+    @Transactional
     public UserDtoOutput save(UserDtoInput userDtoInput) {
+        log.info("save, userDtoInput = {}", userDtoInput);
         User user = userRepo.save(createEntireUser(userDtoInput));
+
         return UserMapper.INSTANCE.toDto(user);
     }
 

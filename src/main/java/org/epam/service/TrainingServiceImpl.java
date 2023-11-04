@@ -1,6 +1,7 @@
 package org.epam.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.epam.mapper.TrainingMapper;
 import org.epam.model.Training;
 import org.epam.model.dto.TrainingDtoInput;
@@ -12,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class TrainingServiceImpl implements TrainingService {
@@ -21,27 +23,38 @@ public class TrainingServiceImpl implements TrainingService {
     @Override
     @Transactional
     public TrainingDtoOutput save(TrainingDtoInput trainingDtoInput) {
+        log.info("save, trainingDtoInput = {}", trainingDtoInput);
         Training trainingToSave = TrainingMapper.INSTANCE.toEntity(trainingDtoInput);
         Training savedTraining = trainingRepo.save(trainingToSave);
 
         return TrainingDtoOutput.builder()
-                .id(savedTraining.getId())
-                .traineeId(savedTraining.getTraineeId())
-                .trainerId(savedTraining.getTrainerId())
-                .name(savedTraining.getName())
-                .typeId(savedTraining.getTypeId())
-                .date(savedTraining.getDate())
-                .duration(savedTraining.getDuration())
-                .build();
+                                .id(savedTraining.getId())
+                                .traineeId(savedTraining.getTraineeId())
+                                .trainerId(savedTraining.getTrainerId())
+                                .name(savedTraining.getName())
+                                .typeId(savedTraining.getTypeId())
+                                .date(savedTraining.getDate())
+                                .duration(savedTraining.getDuration())
+                                .build();
     }
 
-    public List<TrainingDtoOutput> findByDateRangeAndTraineeUserName(LocalDate startDate, LocalDate endDate, String traineeUsername) {
+    @Override
+    public List<TrainingDtoOutput> findByDateRangeAndTraineeUserName(LocalDate startDate, LocalDate endDate,
+                                                                     String traineeUsername) {
+        log.info("findByDateRangeAndTraineeUserName, startDate = {}, endDate = {}, traineeUsername = {}", startDate,
+                endDate, traineeUsername);
         List<Training> trainings = trainingRepo.findByDateRangeAndTraineeUsername(startDate, endDate, traineeUsername);
+
         return TrainingMapper.INSTANCE.toDtoList(trainings);
     }
 
-    public List<TrainingDtoOutput> findByDateRangeAndTrainerUserName(LocalDate startDate, LocalDate endDate, String trainerUsername) {
+    @Override
+    public List<TrainingDtoOutput> findByDateRangeAndTrainerUserName(LocalDate startDate, LocalDate endDate,
+                                                                     String trainerUsername) {
+        log.info("findByDateRangeAndTrainerUserName, startDate = {}, endDate = {}, trainerUsername = {}", startDate,
+                endDate, trainerUsername);
         List<Training> trainings = trainingRepo.findByDateRangeAndTrainerUsername(startDate, endDate, trainerUsername);
+
         return TrainingMapper.INSTANCE.toDtoList(trainings);
     }
 }

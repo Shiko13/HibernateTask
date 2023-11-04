@@ -1,7 +1,6 @@
 package org.epam.controller;
 
 import lombok.RequiredArgsConstructor;
-import org.epam.model.Trainer;
 import org.epam.model.dto.TrainerDtoInput;
 import org.epam.model.dto.TrainerDtoOutput;
 import org.epam.service.TrainerService;
@@ -13,6 +12,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/trainer")
 @RequiredArgsConstructor
@@ -21,32 +22,34 @@ public class TrainerController {
     private final TrainerService trainerService;
 
     @GetMapping("/username")
-    TrainerDtoOutput getByUserName(@RequestParam String userName, @RequestParam String password) {
+    public TrainerDtoOutput getByUserName(@RequestParam String userName, @RequestParam String password) {
         return trainerService.getByUserName(userName, password);
     }
 
+    @GetMapping("/free")
+    public List<TrainerDtoOutput> getTrainersWithEmptyTrainees() {
+        return trainerService.getTrainersWithEmptyTrainees();
+    }
+
     @PostMapping()
-    TrainerDtoOutput save(@RequestBody TrainerDtoInput trainerDtoInput) {
+    public TrainerDtoOutput save(@RequestBody TrainerDtoInput trainerDtoInput) {
         return trainerService.save(trainerDtoInput);
     }
 
     @PutMapping("/password")
-    TrainerDtoOutput changePassword(@RequestParam String userName,
-                                    @RequestParam String oldPassword,
-                                    @RequestParam String newPassword) {
+    public TrainerDtoOutput changePassword(@RequestParam String userName, @RequestParam String oldPassword,
+                                           @RequestParam String newPassword) {
         return trainerService.changePassword(userName, oldPassword, newPassword);
     }
 
-    @PutMapping
-    TrainerDtoOutput update(@RequestParam String userName,
-                            @RequestParam String password,
-                            @RequestBody TrainerDtoInput trainerDtoInput) {
-        return trainerService.update(userName, password, trainerDtoInput);
+    @PutMapping("/profile")
+    public TrainerDtoOutput updateProfile(@RequestParam String userName, @RequestParam String password,
+                                          @RequestBody TrainerDtoInput trainerDtoInput) {
+        return trainerService.updateProfile(userName, password, trainerDtoInput);
     }
 
     @PutMapping("/activate")
-    TrainerDtoOutput switchActivate(@RequestParam String userName,
-                                    @RequestParam String password) {
+    public TrainerDtoOutput switchActivate(@RequestParam String userName, @RequestParam String password) {
         return trainerService.switchActivate(userName, password);
     }
 }

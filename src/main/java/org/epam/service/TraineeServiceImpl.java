@@ -1,6 +1,7 @@
 package org.epam.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.epam.error.AccessException;
 import org.epam.error.NotFoundException;
 import org.epam.mapper.TraineeMapper;
@@ -19,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class TraineeServiceImpl implements TraineeService {
@@ -32,6 +34,7 @@ public class TraineeServiceImpl implements TraineeService {
     @Override
     @Transactional
     public TraineeDtoOutput save(TraineeDtoInput traineeDtoInput) {
+        log.info("save, traineeDtoInput = {}", traineeDtoInput);
         User user = userRepo.findById(traineeDtoInput.getUserId()).orElseThrow(() -> new NotFoundException("Not found"));
 
         List<Trainer> selectedTrainers = trainerRepo.findAllById(traineeDtoInput.getTrainerIds());
@@ -40,37 +43,28 @@ public class TraineeServiceImpl implements TraineeService {
 
         Trainee trainee = traineeRepo.save(traineeToSave);
 
-        return TraineeDtoOutput.builder()
-                               .id(trainee.getId())
-                               .dateOfBirth(trainee.getDateOfBirth())
-                               .address(trainee.getAddress())
-                               .user(UserMapper.INSTANCE.toDto(user))
-                               .trainerIds(convertToTrainerIds(trainee.getTrainers()))
-                               .build();
+        return createTraineeDtoOutput(trainee, user);
     }
 
     @Override
     public TraineeDtoOutput getByUserName(String userName, String password) {
-        User user = userRepo.findByUserName(userName).orElseThrow(() -> new NotFoundException("Not found"));
+        log.info("getByUserName, userName = {}", userName);
+        User user = getUserByUserName(userName);
 
         if (authenticate(password, user)) {
             throw new AccessException("You don't have access for this.");
         }
 
         Trainee trainee = traineeRepo.findByUserId(user.getId()).orElseThrow(() -> new NotFoundException("Not found"));
-        return TraineeDtoOutput.builder()
-                .id(trainee.getId())
-                .dateOfBirth(trainee.getDateOfBirth())
-                .address(trainee.getAddress())
-                .user(UserMapper.INSTANCE.toDto(user))
-                .trainerIds(convertToTrainerIds(trainee.getTrainers()))
-                .build();
+
+        return createTraineeDtoOutput(trainee, user);
     }
 
     @Override
     @Transactional
     public TraineeDtoOutput changePassword(String userName, String oldPassword, String newPassword) {
-        User user = userRepo.findByUserName(userName).orElseThrow(() -> new NotFoundException("Not found"));
+        log.info("changePassword, userName = {}", userName);
+        User user = getUserByUserName(userName);
 
         if (authenticate(oldPassword, user)) {
             throw new AccessException("You don't have access for this.");
@@ -80,19 +74,34 @@ public class TraineeServiceImpl implements TraineeService {
         User updatedUser = userRepo.save(user);
 
         Trainee trainee = traineeRepo.findByUserId(user.getId()).orElseThrow(() -> new NotFoundException("Not found"));
-        return TraineeDtoOutput.builder()
-                               .id(trainee.getId())
-                               .dateOfBirth(trainee.getDateOfBirth())
-                               .address(trainee.getAddress())
-                               .user(UserMapper.INSTANCE.toDto(updatedUser))
-                               .trainerIds(convertToTrainerIds(trainee.getTrainers()))
-                               .build();
+
+        return createTraineeDtoOutput(trainee, updatedUser);
     }
 
     @Override
     @Transactional
-    public TraineeDtoOutput update(String userName, String password, TraineeDtoInput traineeDtoInput) {
-        User user = userRepo.findByUserName(userName).orElseThrow(() -> new NotFoundException("Not found"));
+    public TraineeDtoOutput updateProfile(String userName, String password, TraineeDtoInput traineeDtoInput) {
+        log.info("updateProfile, traineeDtoInput = {}", traineeDtoInput);
+        User user = getUserByUserName(userName);
+
+        if (authenticate(password, user)) {
+            throw new AccessException("You don't have access for this.");
+        }
+
+        Trainee trainee = traineeRepo.findByUserId(user.getId()).orElseThrow(() -> new NotFoundException("Not found"));
+        trainee.setAddress(traineeDtoInput.getAddress());
+        trainee.setDateOfBirth(traineeDtoInput.getDateOfBirth());
+        trainee.setUserId(traineeDtoInput.getUserId());
+        Trainee updatedTrainee = traineeRepo.save(trainee);
+
+        return createTraineeDtoOutput(updatedTrainee, user);
+    }
+
+    @Override
+    @Transactional
+    public TraineeDtoOutput updateTrainerList(String userName, String password, TraineeDtoInput traineeDtoInput) {
+        log.info("updateTrainerList, traineeDtoInput = {}", traineeDtoInput);
+        User user = getUserByUserName(userName);
 
         if (authenticate(password, user)) {
             throw new AccessException("You don't have access for this.");
@@ -100,25 +109,17 @@ public class TraineeServiceImpl implements TraineeService {
 
         List<Trainer> selectedTrainers = trainerRepo.findAllById(traineeDtoInput.getTrainerIds());
         Trainee trainee = traineeRepo.findByUserId(user.getId()).orElseThrow(() -> new NotFoundException("Not found"));
-        trainee.setAddress(traineeDtoInput.getAddress());
-        trainee.setDateOfBirth(traineeDtoInput.getDateOfBirth());
-        trainee.setUserId(traineeDtoInput.getUserId());
         trainee.setTrainers(selectedTrainers);
         Trainee updatedTrainee = traineeRepo.save(trainee);
 
-        return TraineeDtoOutput.builder()
-                               .id(updatedTrainee.getId())
-                               .dateOfBirth(updatedTrainee.getDateOfBirth())
-                               .address(updatedTrainee.getAddress())
-                               .user(UserMapper.INSTANCE.toDto(user))
-                               .trainerIds(convertToTrainerIds(trainee.getTrainers()))
-                               .build();
+        return createTraineeDtoOutput(updatedTrainee, user);
     }
 
     @Override
     @Transactional
     public TraineeDtoOutput switchActivate(String userName, String password) {
-        User user = userRepo.findByUserName(userName).orElseThrow(() -> new NotFoundException("Not found"));
+        log.info("switchActivate, userName = {}", userName);
+        User user = getUserByUserName(userName);
 
         if (authenticate(password, user)) {
             throw new AccessException("You don't have access for this.");
@@ -129,19 +130,14 @@ public class TraineeServiceImpl implements TraineeService {
         user.setIsActive(!user.getIsActive());
         User updatedUser = userRepo.save(user);
 
-        return TraineeDtoOutput.builder()
-                               .id(trainee.getId())
-                               .dateOfBirth(trainee.getDateOfBirth())
-                               .address(trainee.getAddress())
-                               .user(UserMapper.INSTANCE.toDto(updatedUser))
-                               .trainerIds(convertToTrainerIds(trainee.getTrainers()))
-                               .build();
+        return createTraineeDtoOutput(trainee, updatedUser);
     }
 
     @Override
     @Transactional
     public void deleteByUsername(String userName, String password) {
-        User user = userRepo.findByUserName(userName).orElseThrow(() -> new NotFoundException("Not found"));
+        log.info("deleteByUsername, userName = {}", userName);
+        User user = getUserByUserName(userName);
 
         if (authenticate(password, user)) {
             throw new AccessException("You don't have access for this.");
@@ -151,6 +147,21 @@ public class TraineeServiceImpl implements TraineeService {
 
         traineeRepo.deleteById(trainee.getId());
         userRepo.deleteById(user.getId());
+    }
+
+    private User getUserByUserName(String userName) {
+        return userRepo.findByUserName(userName)
+                       .orElseThrow(() -> new NotFoundException("User not found"));
+    }
+
+    private TraineeDtoOutput createTraineeDtoOutput(Trainee trainee, User user) {
+        return TraineeDtoOutput.builder()
+                               .id(trainee.getId())
+                               .dateOfBirth(trainee.getDateOfBirth())
+                               .address(trainee.getAddress())
+                               .user(UserMapper.INSTANCE.toDto(user))
+                               .trainerIds(convertToTrainerIds(trainee.getTrainers()))
+                               .build();
     }
 
     private boolean authenticate(String password, User user) {
