@@ -33,7 +33,7 @@ public class UserServiceImpl implements UserService {
         return UserMapper.INSTANCE.toDto(user);
     }
 
-    private User createEntireUser(UserDtoInput userDtoInput) {
+    public User createEntireUser(UserDtoInput userDtoInput) {
         String password = RandomStringGenerator.generateRandomString(passwordLength);
         String baseUserName = userDtoInput.getFirstName().toLowerCase() + "." + userDtoInput.getLastName().toLowerCase();
         String userName = baseUserName;
@@ -53,7 +53,7 @@ public class UserServiceImpl implements UserService {
                 .build();
     }
 
-    private boolean isUserNameExistsInDatabase(String userName) {
+    public boolean isUserNameExistsInDatabase(String userName) {
         Optional<User> user = userRepo.findByUserName(userName);
         return user.isPresent();
     }

@@ -164,7 +164,7 @@ public class TraineeServiceImpl implements TraineeService {
                                .build();
     }
 
-    private boolean authenticate(String password, User user) {
+    public boolean authenticate(String password, User user) {
             return !user.getPassword().equals(password);
     }
 
