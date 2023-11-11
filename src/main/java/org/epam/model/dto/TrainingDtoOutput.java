@@ -17,13 +17,13 @@ public class TrainingDtoOutput {
 
     private Long id;
 
-    private Long traineeId;
+    private TraineeTrainingDtoOutput trainee;
 
-    private Long trainerId;
+    private TrainerTrainingDtoOutput trainer;
 
     private String name;
 
-    private Long typeId;
+    private TrainingTypeOutputDto type;
 
     private LocalDate date;
 

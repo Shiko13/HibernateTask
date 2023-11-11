@@ -17,7 +17,8 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-import static org.mockito.ArgumentMatchers.any;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -41,7 +42,7 @@ public class UserControllerTest {
         UserDtoInput userDtoInput = createTestUserDtoInput();
         UserDtoOutput expected = createExpectedUserDtoOutput();
 
-        when(userService.save(any(UserDtoInput.class))).thenReturn(expected);
+        when(userService.save(userDtoInput)).thenReturn(expected);
 
         mockMvc.perform(MockMvcRequestBuilders.post("/user")
                                               .contentType(MediaType.APPLICATION_JSON)
@@ -49,6 +50,36 @@ public class UserControllerTest {
                .andExpect(MockMvcResultMatchers.status().isOk())
                .andExpect(MockMvcResultMatchers.content().contentType(MediaType.APPLICATION_JSON))
                .andExpect(MockMvcResultMatchers.content().json(asJsonString(expected)));
+    }
+
+    @Test
+    void changePassword_ShouldReturnUserDtoOutput() {
+        String userName = "testUser";
+        String oldPassword = "oldPassword";
+        String newPassword = "newPassword";
+
+        UserDtoOutput expectedUserOutput = createExpectedUserDtoOutput();
+
+        when(userService.changePassword(userName, oldPassword, newPassword)).thenReturn(expectedUserOutput);
+
+        UserDtoOutput result = userController.changePassword(userName, oldPassword, newPassword);
+
+        assertNotNull(result);
+        assertEquals(expectedUserOutput, result);
+    }
+
+    @Test
+    void switchActivate_ShouldReturnTraineeDtoOutput() {
+        String userName = "testUser";
+        String password = "testPassword";
+        UserDtoOutput expectedOutput = createExpectedUserDtoOutput();
+
+        when(userService.switchActivate(userName, password)).thenReturn(expectedOutput);
+
+        UserDtoOutput result = userController.switchActivate(userName, password);
+
+        assertNotNull(result);
+        assertEquals(expectedOutput, result);
     }
 
     private UserDtoInput createTestUserDtoInput() {

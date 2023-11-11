@@ -3,17 +3,28 @@ package org.epam.mapper;
 import org.epam.model.Trainer;
 import org.epam.model.dto.TrainerDtoInput;
 import org.epam.model.dto.TrainerDtoOutput;
+import org.epam.model.dto.TrainerTrainingShortDtoOutput;
 import org.mapstruct.Mapper;
-import org.mapstruct.factory.Mappers;
+import org.mapstruct.Mapping;
 
-@Mapper
+import java.util.List;
+
+@Mapper(componentModel = "spring", uses = {TraineeMapper.class, UserMapper.class, TrainingTypeMapper.class})
 public interface TrainerMapper {
-
-    TrainerMapper INSTANCE = Mappers.getMapper(TrainerMapper.class);
 
     TrainerDtoInput toDto(Trainer trainer);
 
+    @Mapping(target = "id", source = "userId")
     Trainer toEntity(TrainerDtoInput trainerDtoInput);
 
-    TrainerDtoOutput toOutputDto(Trainer trainer);
+    @Mapping(target = "traineeIds", source = "trainees")
+    TrainerDtoOutput toDtoOutput(Trainer trainer);
+
+    TrainerTrainingShortDtoOutput toShortDtoOutput(Trainer trainer);
+
+    List<Long> toIds(List<Trainer> trainers);
+
+    default Long toId(Trainer trainer) {
+        return trainer.getId();
+    }
 }

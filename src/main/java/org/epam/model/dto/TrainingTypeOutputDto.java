@@ -2,13 +2,12 @@ package org.epam.model.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-import lombok.NonNull;
 
 @Getter
 @AllArgsConstructor
-public class TrainingTypeDto {
+public class TrainingTypeOutputDto {
 
-    @NonNull
+    private Long id;
+
     private String name;
-
 }

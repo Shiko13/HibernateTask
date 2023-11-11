@@ -40,4 +40,7 @@ public class User {
 
     @Column(name = "is_active")
     private Boolean isActive;
+
+    @Column(name = "prefix")
+    private Integer prefix;
 }

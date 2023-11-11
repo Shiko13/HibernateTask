@@ -2,6 +2,7 @@ package org.epam.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.epam.error.AccessException;
 import org.epam.mapper.UserMapper;
 import org.epam.model.User;
 import org.epam.model.dto.UserDtoInput;
@@ -21,8 +22,12 @@ public class UserServiceImpl implements UserService {
 
     private final UserRepo userRepo;
 
+    private final UserMapper userMapper;
+
+    private final AuthenticationService authenticationService;
+
     @Value("${password.length}")
-    int passwordLength;
+    private int passwordLength;
 
     @Override
     @Transactional
@@ -30,18 +35,63 @@ public class UserServiceImpl implements UserService {
         log.info("save, userDtoInput = {}", userDtoInput);
         User user = userRepo.save(createEntireUser(userDtoInput));
 
-        return UserMapper.INSTANCE.toDto(user);
+        return userMapper.toDto(user);
     }
+
+    @Override
+    public UserDtoOutput changePassword(String userName, String oldPassword, String newPassword) {
+        log.info("changePassword, userName = {}", userName);
+        User user = getUserByUserName(userName);
+
+        if (authenticationService.checkAccess(oldPassword, user)) {
+            throw new AccessException("You don't have access for this.");
+        }
+
+        user.setPassword(newPassword);
+        return userMapper.toDto(userRepo.save(user));
+    }
+
+    @Override
+    public UserDtoOutput switchActivate(String userName, String password) {
+        log.info("switchActivate, userName = {}", userName);
+
+        User user = getUserByUserName(userName);
+        if (authenticationService.checkAccess(password, user)) {
+            throw new AccessException("You don't have access for this.");
+        }
+
+        user.setIsActive(!user.getIsActive());
+        User updatedUser = userRepo.save(user);
+
+        return userMapper.toDto(updatedUser);
+    }
+
+    @Override
+    public Optional<User> findUserByUsername(String userName) {
+        if (userName.matches(".+-\\d$")) {
+            String[] parts = userName.split("-");
+            String userNameWithPrefix = parts[0].trim();
+            Integer prefix = Integer.valueOf(parts[1]);
+            return userRepo.findByUserNameAndPrefix(userNameWithPrefix, prefix);
+        } else {
+            return userRepo.findByUserNameAndPrefix(userName, 0);
+        }
+    }
+
+    private User getUserByUserName(String userName) {
+        return userRepo.findByUserName(userName)
+                       .orElseThrow(() -> new AccessException("You don't have access for this."));
+    }
+
 
     public User createEntireUser(UserDtoInput userDtoInput) {
         String password = RandomStringGenerator.generateRandomString(passwordLength);
-        String baseUserName = userDtoInput.getFirstName().toLowerCase() + "." + userDtoInput.getLastName().toLowerCase();
-        String userName = baseUserName;
-        int count = 1;
+        String userName = userDtoInput.getFirstName().toLowerCase() + "." + userDtoInput.getLastName().toLowerCase();
+        Integer maxPrefix = 0;
 
-        while (isUserNameExistsInDatabase(userName)) {
-            userName = baseUserName + "-" + count;
-            count++;
+        if (isUserNameExistsInDatabase(userName)) {
+            maxPrefix = userRepo.findMaxPrefixByUsername(userName);
+            maxPrefix++;
         }
 
         return User.builder()
@@ -50,11 +100,12 @@ public class UserServiceImpl implements UserService {
                 .userName(userName)
                 .password(password)
                 .isActive(userDtoInput.getIsActive())
+                .prefix(maxPrefix)
                 .build();
+
     }
 
     public boolean isUserNameExistsInDatabase(String userName) {
-        Optional<User> user = userRepo.findByUserName(userName);
-        return user.isPresent();
+        return userRepo.existsByUserName(userName);
     }
 }

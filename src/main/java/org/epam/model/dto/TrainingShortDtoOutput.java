@@ -1,39 +1,31 @@
 package org.epam.model.dto;
 
-import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.NonNull;
 import lombok.Setter;
-import lombok.ToString;
 
 import java.time.LocalDate;
 
 @Getter
 @Setter
 @Builder
-@ToString
 @NoArgsConstructor
 @AllArgsConstructor
-public class TrainingDtoInput {
+public class TrainingShortDtoOutput {
 
-    @NonNull
-    private Long traineeId;
+    private Long id;
 
-    @NonNull
-    private Long trainerId;
+    private TraineeTrainingShortDtoOutput trainee;
 
-    @NotBlank
+    private TrainerTrainingShortDtoOutput trainer;
+
     private String name;
 
-    @NonNull
-    private Long typeId;
+    private TrainingTypeOutputDto type;
 
-    @NonNull
     private LocalDate date;
 
-    @NonNull
     private Long duration;
 }

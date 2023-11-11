@@ -2,15 +2,20 @@ package service;
 
 import org.epam.error.AccessException;
 import org.epam.error.NotFoundException;
+import org.epam.mapper.TraineeMapper;
 import org.epam.model.Trainee;
 import org.epam.model.Trainer;
 import org.epam.model.User;
 import org.epam.model.dto.TraineeDtoInput;
 import org.epam.model.dto.TraineeDtoOutput;
+import org.epam.model.dto.UserDtoOutput;
 import org.epam.repo.TraineeRepo;
 import org.epam.repo.TrainerRepo;
 import org.epam.repo.UserRepo;
+import org.epam.service.AuthenticationService;
 import org.epam.service.TraineeServiceImpl;
+import org.epam.service.UserService;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -18,20 +23,15 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.anyList;
-import static org.mockito.Mockito.anyLong;
-import static org.mockito.Mockito.times;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -50,301 +50,284 @@ class TraineeServiceTest {
     @Mock
     private TrainerRepo trainerRepo;
 
-    @Test
-    void save_shouldOk() {
-        TraineeDtoInput traineeDtoInput = createTestTraineeDtoInput();
-        User user = createTestUser();
-        List<Trainer> selectedTrainers = createTestSelectedTrainers();
-        Trainee traineeToSave = createTestTraineeToSave();
+    @Mock
+    private TraineeMapper traineeMapper;
 
-        when(userRepo.findById(anyLong())).thenReturn(Optional.of(user));
-        when(trainerRepo.findAllById(anyList())).thenReturn(selectedTrainers);
-        when(traineeRepo.save(any(Trainee.class))).thenReturn(traineeToSave);
+    @Mock
+    private UserService userService;
+
+    @Mock
+    private AuthenticationService authenticationService;
+
+    private User user;
+    private List<Trainer> selectedTrainers;
+    private TraineeDtoInput traineeDtoInput;
+    private Trainee traineeToSave;
+    private TraineeDtoOutput savedTrainee;
+
+    private UserDtoOutput userDtoOutput;
+
+    @BeforeEach
+    void setUp() {
+        user = createUser();
+        userDtoOutput = createUserDtoOutput(user);
+        selectedTrainers = createSelectedTrainers();
+        traineeDtoInput = createTraineeDtoInput(user, selectedTrainers);
+        traineeToSave = createTraineeToSave(traineeDtoInput, selectedTrainers, user);
+        savedTrainee = createSavedTrainee(traineeToSave, userDtoOutput);
+    }
+
+    @Test
+    void save_shouldReturnSavedTraineeDtoOutput() {
+        when(userRepo.existsById(user.getId())).thenReturn(true);
+        when(userRepo.findById(user.getId())).thenReturn(Optional.of(user));
+        when(trainerRepo.findAllById(traineeDtoInput.getTrainerIds())).thenReturn(selectedTrainers);
+        when(traineeRepo.save(traineeToSave)).thenReturn(traineeToSave);
+        when(traineeMapper.toEntity(traineeDtoInput)).thenReturn(traineeToSave);
+        when(traineeMapper.toDtoOutput(traineeToSave)).thenReturn(savedTrainee);
 
         TraineeDtoOutput result = traineeService.save(traineeDtoInput);
 
         assertNotNull(result);
-        assertEquals(traineeToSave.getId(), result.getId());
+        assertEquals(savedTrainee.getId(), result.getId());
+        assertEquals(savedTrainee.getDateOfBirth(), result.getDateOfBirth());
+        assertEquals(savedTrainee.getAddress(), result.getAddress());
+        assertEquals(savedTrainee.getUser(), result.getUser());
+        assertEquals(savedTrainee.getTrainerIds(), result.getTrainerIds());
     }
 
     @Test
     void getByUserName_shouldOk() {
-        String userName = "testUser";
-        String password = "testPassword";
-        User user = createTestUser();
-        Trainee trainee = createTestTrainee();
+        when(traineeRepo.findByUserId(user.getId())).thenReturn(Optional.of(traineeToSave));
+        when(userService.findUserByUsername(user.getUserName())).thenReturn(Optional.of(user));
+        when(traineeMapper.toDtoOutput(traineeToSave)).thenReturn(savedTrainee);
 
-        when(userRepo.findByUserName(userName)).thenReturn(Optional.of(user));
-        when(traineeRepo.findByUserId(user.getId())).thenReturn(Optional.of(trainee));
-
-        TraineeDtoOutput result = traineeService.getByUserName(userName, password);
+        TraineeDtoOutput result = traineeService.getByUserName(user.getUserName(), user.getPassword());
 
         assertNotNull(result);
-        assertEquals(trainee.getId(), result.getId());
-        assertEquals(trainee.getAddress(), result.getAddress());
-        assertEquals(trainee.getUserId(),result.getUser().getId());
-        assertEquals(trainee.getTrainers().stream().map(Trainer::getUserId).collect(Collectors.toList()), result.getTrainerIds());
+        assertEquals(savedTrainee.getId(), result.getId());
+        assertEquals(savedTrainee.getDateOfBirth(), result.getDateOfBirth());
+        assertEquals(savedTrainee.getAddress(), result.getAddress());
+        assertEquals(savedTrainee.getUser(), result.getUser());
+        assertEquals(savedTrainee.getTrainerIds(), result.getTrainerIds());
     }
 
     @Test
-    void getByUserName_WithIncorrectPassword_ShouldThrowAccessException() {
-        String userName = "testUser";
-        String password = "incorrectPassword";
-        User user = createTestUser();
+    void getByUserName_WhenUserDoesNotExist_ShouldThrowNotFoundException() {
+        when(authenticationService.checkAccess(user.getPassword(), user)).thenReturn(false);
+        when(userService.findUserByUsername(user.getUserName())).thenReturn(Optional.ofNullable(user));
 
-        when(userRepo.findByUserName(userName)).thenReturn(Optional.of(user));
-
-        AccessException exception =
-                assertThrows(AccessException.class, () -> traineeService.getByUserName(userName, password));
-        assertEquals("You don't have access for this.", exception.getMessage());
-    }
-
-    @Test
-    void changePassword_WithIncorrectPassword_ShouldThrowAccessException() {
-        String userName = "testUser";
-        String oldPassword = "incorrectPassword";
-        String newPassword = "newPassword";
-        User user = createTestUser();
-
-        when(userRepo.findByUserName(userName)).thenReturn(Optional.of(user));
-
-        assertThrows(AccessException.class, () -> traineeService.changePassword(userName, oldPassword, newPassword));
-    }
-
-    @Test
-    void changePassword_WithValidInput_ShouldUpdateUserPassword() {
-        String userName = "testUser";
-        String oldPassword = "correctPassword";
-        String newPassword = "newPassword";
-        User user = createTestUser();
-        user.setPassword(oldPassword);
-        Trainee trainee = createTestTrainee();
-
-        when(userRepo.findByUserName(userName)).thenReturn(Optional.of(user));
-        when(traineeRepo.findByUserId(user.getId())).thenReturn(Optional.of(trainee));
-
-        TraineeDtoOutput result = traineeService.changePassword(userName, oldPassword, newPassword);
-
-        assertNotNull(result);
-        assertEquals(newPassword, user.getPassword());
-    }
-
-    @Test
-    void changePassword_WithValidInput_ShouldRetrieveTrainee() {
-        String userName = "testUser";
-        String oldPassword = "correctPassword";
-        String newPassword = "newPassword";
-        User user = createTestUser();
-        user.setPassword(oldPassword);
-        Trainee trainee = createTestTrainee();
-
-        when(userRepo.findByUserName(userName)).thenReturn(Optional.of(user));
-        when(traineeRepo.findByUserId(user.getId())).thenReturn(Optional.of(trainee));
-
-        when(userRepo.save(any(User.class))).thenReturn(user);
-
-        TraineeDtoOutput result = traineeService.changePassword(userName, oldPassword, newPassword);
-
-        assertNotNull(result);
-        assertNotNull(trainee);
-    }
-
-    @Test
-    void updateProfile_WithValidInput_ShouldThrowAccessException() {
-        String userName = "testUser";
-        String password = "correctPassword";
-        TraineeDtoInput traineeDtoInput = createTestTraineeDtoInput();
-        User user = createTestUser();
-
-        when(userRepo.findByUserName(userName)).thenReturn(Optional.of(user));
-
-        assertThrows(AccessException.class, () -> traineeService.updateProfile(userName, password, traineeDtoInput));
+        assertThrows(NotFoundException.class, () -> traineeService.getByUserName(user.getUserName(), user.getPassword()));
     }
 
     @Test
     void updateProfile_WithValidInput_ShouldReturnUpdatedTraineeDtoOutput() {
-        String userName = "testUser";
-        String password = "correctPassword";
-        User user = createTestUser();
-        user.setPassword(password);
-        Trainee trainee = createTestTrainee();
-        TraineeDtoInput traineeDtoInput = createTestTraineeDtoInput();
+        TraineeDtoInput updatedTrainee = createUpdatedTraineeDtoInput(user, selectedTrainers);
+        Trainee updatedSavedTrainee = createTraineeToSave(updatedTrainee, selectedTrainers, user);
+        TraineeDtoOutput savedUpdatedTrainee = createSavedTrainee(updatedSavedTrainee, userDtoOutput);
 
-        when(userRepo.findByUserName(userName)).thenReturn(Optional.of(user));
-        when(traineeRepo.findByUserId(user.getId())).thenReturn(Optional.of(trainee));
+        when(traineeRepo.findByUserId(user.getId())).thenReturn(Optional.of(traineeToSave));
+        when(traineeRepo.save(any(Trainee.class))).thenReturn(updatedSavedTrainee);
+        when(userService.findUserByUsername(user.getUserName())).thenReturn(Optional.of(user));
+        when(traineeMapper.toDtoOutput(updatedSavedTrainee)).thenReturn(savedUpdatedTrainee);
 
-        when(traineeRepo.save(any(Trainee.class))).thenReturn(trainee);
-
-        TraineeDtoOutput result = traineeService.updateProfile(userName, password, traineeDtoInput);
+        TraineeDtoOutput result = traineeService.updateProfile(user.getUserName(), user.getPassword(), updatedTrainee);
 
         assertNotNull(result);
-        assertEquals(traineeDtoInput.getDateOfBirth(), result.getDateOfBirth());
-        assertEquals(traineeDtoInput.getAddress(), result.getAddress());
-        assertEquals(traineeDtoInput.getUserId(), result.getUser().getId());
+        assertEquals(updatedTrainee.getDateOfBirth(), result.getDateOfBirth());
+        assertEquals(updatedTrainee.getAddress(), result.getAddress());
+        assertEquals(updatedTrainee.getUserId(), result.getUser().getId());
     }
-
-    @Test
-    void switchActivate_WithValidInput_ShouldReturnUpdatedTraineeDtoOutput() {
-        String userName = "testUser";
-        String password = "correctPassword";
-        User user = createTestUser();
-        user.setPassword(password);
-        Trainee trainee = createTestTrainee();
-        User updatedUser = createTestUser();
-        updatedUser.setIsActive(false);
-
-        when(userRepo.findByUserName(userName)).thenReturn(Optional.of(user));
-        when(traineeRepo.findByUserId(user.getId())).thenReturn(Optional.of(trainee));
-        when(userRepo.save(user)).thenReturn(updatedUser);
-
-        TraineeDtoOutput result = traineeService.switchActivate(userName, password);
-
-        assertNotNull(result);
-        assertFalse(result.getUser().getIsActive());
-    }
-
 
     @Test
     void deleteByUsername_WithValidInput_ShouldDeleteTraineeAndUser() {
-        String userName = "testUser";
-        String password = "correctPassword";
-        User user = createTestUser();
-        user.setPassword(password);
-        Trainee trainee = createTestTrainee();
+        when(userService.findUserByUsername(user.getUserName())).thenReturn(Optional.of(user));
 
-        when(userRepo.findByUserName(userName)).thenReturn(Optional.of(user));
-        when(traineeRepo.findByUserId(user.getId())).thenReturn(Optional.of(trainee));
+        traineeToSave.setId(user.getId());
 
-        assertDoesNotThrow(() -> traineeService.deleteByUsername(userName, password));
+        assertDoesNotThrow(() -> traineeService.deleteByUsername(user.getUserName(), user.getPassword()));
 
-        verify(traineeRepo, times(1)).deleteById(trainee.getId());
-        verify(userRepo, times(1)).deleteById(user.getId());
+        verify(traineeRepo).deleteById(traineeToSave.getId());
     }
 
     @Test
     void updateTrainerList_WithValidInput_ShouldUpdateTrainerList() {
-        String userName = "testUser";
-        String password = "correctPassword";
-        Trainee trainee = createTestTrainee();
-        User user = createTestUser();
-        user.setPassword(password);
-        TraineeDtoInput traineeDtoInput = createTestTraineeDtoInput();
-        List<Trainer> selectedTrainers = createTestSelectedTrainers();
+        List<Trainer> updatedTrainers = createUpdatedSelectedTrainers();
+        List<Long> updatedTrainerIds = updatedTrainers.stream().map(Trainer::getId).collect(Collectors.toList());
 
-        when(userRepo.findByUserName(userName)).thenReturn(Optional.of(user));
-        when(traineeRepo.findByUserId(user.getId())).thenReturn(Optional.of(trainee));
+        traineeDtoInput.setTrainerIds(updatedTrainerIds);
+        savedTrainee.setTrainerIds(updatedTrainerIds);
+        traineeToSave.setTrainers(updatedTrainers);
 
+        when(traineeRepo.findByUserId(user.getId())).thenReturn(Optional.of(traineeToSave));
         when(trainerRepo.findAllById(traineeDtoInput.getTrainerIds())).thenReturn(selectedTrainers);
+        when(traineeRepo.save(any(Trainee.class))).thenReturn(traineeToSave);
+        when(userService.findUserByUsername(user.getUserName())).thenReturn(Optional.of(user));
+        when(traineeMapper.toDtoOutput(traineeToSave)).thenReturn(savedTrainee);
 
-        when(traineeRepo.save(any(Trainee.class))).thenReturn(trainee);
-
-        TraineeDtoOutput result = traineeService.updateTrainerList(userName, password, traineeDtoInput);
+        TraineeDtoOutput result = traineeService.updateTrainerList(user.getUserName(), user.getPassword(), traineeDtoInput);
 
         assertNotNull(result);
-        assertEquals(selectedTrainers, trainee.getTrainers());
+        assertEquals(updatedTrainerIds, savedTrainee.getTrainerIds());
     }
 
     @Test
-    void updateTrainerList_WithIncorrectPassword_ShouldThrowAccessException() {
-        String userName = "testUser";
-        String password = "incorrectPassword";
-        User user = createTestUser();
-        TraineeDtoInput traineeDtoInput = createTestTraineeDtoInput();
+    void authenticate_ValidPasswordAndMatchingIds_NoExceptionThrown() {
+        when(authenticationService.checkAccess(user.getPassword(), user)).thenReturn(false);
 
-        when(userRepo.findByUserName(userName)).thenReturn(Optional.of(user));
+        assertDoesNotThrow(() -> traineeService.authenticate(user.getPassword(), user, traineeDtoInput),
+                "Exception should not be thrown for valid credentials and matching IDs");
+
+        verify(authenticationService).checkAccess(user.getPassword(), user);
+    }
+
+    @Test
+    void authenticate_InvalidPassword_AccessExceptionThrown() {
+        when(authenticationService.checkAccess("Invalid password", user)).thenReturn(true);
 
         AccessException exception = assertThrows(AccessException.class,
-                () -> traineeService.updateTrainerList(userName, password, traineeDtoInput));
+                () -> traineeService.authenticate("Invalid password", user, traineeDtoInput),
+                "An AccessException should be thrown for invalid password");
+
+        verify(authenticationService).checkAccess("Invalid password", user);
+
         assertEquals("You don't have access for this.", exception.getMessage());
     }
 
     @Test
-    void switchActivate_WithIncorrectPassword_ShouldThrowAccessException() {
-        String userName = "testUser";
-        String password = "incorrectPassword";
-        User user = createTestUser();
+    void authenticate_MismatchedIds_AccessExceptionThrown() {
+        traineeDtoInput.setId(user.getId() + 1);
 
-        when(userRepo.findByUserName(userName)).thenReturn(Optional.of(user));
+        when(authenticationService.checkAccess(user.getPassword(), user)).thenReturn(false);
 
-        AccessException exception =
-                assertThrows(AccessException.class, () -> traineeService.switchActivate(userName, password));
+        AccessException exception = assertThrows(AccessException.class,
+                () -> traineeService.authenticate(user.getPassword(), user, traineeDtoInput),
+                "An AccessException should be thrown for mismatched IDs");
+
+        verify(authenticationService).checkAccess(user.getPassword(), user);
+
         assertEquals("You don't have access for this.", exception.getMessage());
     }
 
     @Test
-    void deleteByUsername_WithIncorrectPassword_ShouldThrowAccessException() {
-        String userName = "testUser";
-        String password = "incorrectPassword";
-        User user = createTestUser();
+    void checkUserExisting_UserExists_NoExceptionThrown() {
+        when(userRepo.existsById(user.getId())).thenReturn(true);
 
-        when(userRepo.findByUserName(userName)).thenReturn(Optional.of(user));
+        assertDoesNotThrow(() -> traineeService.checkUserExisting(user.getId()),
+                "No exception should be thrown when the user exists");
 
-        AccessException exception =
-                assertThrows(AccessException.class, () -> traineeService.deleteByUsername(userName, password));
+        verify(userRepo).existsById(user.getId());
+    }
+
+    @Test
+    void checkUserExisting_UserDoesNotExist_AccessExceptionThrown() {
+        Long notExistingUserId = user.getId() + 1;
+
+        when(userRepo.existsById(notExistingUserId)).thenReturn(false);
+
+        AccessException exception = assertThrows(AccessException.class,
+                () -> traineeService.checkUserExisting(notExistingUserId),
+                "An AccessException should be thrown when the user does not exist");
+
+        verify(userRepo).existsById(notExistingUserId);
+
         assertEquals("You don't have access for this.", exception.getMessage());
     }
 
     @Test
-    public void getByUserName_WhenTraineeNotFound_ShouldThrowNotFoundException() {
-        // Arrange
-        String userName = "nonexistentUser";
-        String password = "password";
+    void authenticate_ValidPassword_NoExceptionThrown() {
+        when(authenticationService.checkAccess(user.getPassword(), user)).thenReturn(false);
 
-        assertThrows(NotFoundException.class, () -> traineeService.getByUserName(userName, password));
+        assertDoesNotThrow(() -> traineeService.authenticate(user.getPassword(), user),
+                "No exception should be thrown for a valid password");
+
+        verify(authenticationService).checkAccess(user.getPassword(), user);
     }
 
-    public TraineeDtoInput createTestTraineeDtoInput() {
-        TraineeDtoInput traineeDtoInput = new TraineeDtoInput();
-        traineeDtoInput.setUserId(1L);
-        List<Long> trainerIds = List.of(2L, 3L, 4L);
-        traineeDtoInput.setTrainerIds(trainerIds);
+    @Test
+    void authenticate_InvalidPassword_AccessExceptionThrown2() {
+        when(authenticationService.checkAccess("Invalid password", user)).thenReturn(true);
 
-        return traineeDtoInput;
+        AccessException exception = assertThrows(AccessException.class,
+                () -> traineeService.authenticate("Invalid password", user),
+                "An AccessException should be thrown for an invalid password");
+
+        verify(authenticationService).checkAccess("Invalid password", user);
+
+        assertEquals("You don't have access for this.", exception.getMessage());
     }
 
-    public User createTestUser() {
-        User user = new User();
-        user.setId(1L);
-        user.setUserName("testUser");
-        user.setPassword("testPassword");
-        user.setIsActive(true);
-
-        return user;
+    public TraineeDtoInput createTraineeDtoInput(User user, List<Trainer> trainers) {
+        return TraineeDtoInput.builder()
+                              .id(user.getId())
+                              .dateOfBirth(LocalDate.of(1985, 5, 7))
+                              .address("Common street 53")
+                              .userId(user.getId())
+                              .trainerIds(trainers.stream().map(Trainer::getId).collect(Collectors.toList()))
+                              .build();
     }
 
-    public List<Trainer> createTestSelectedTrainers() {
-        List<Trainer> selectedTrainers = new ArrayList<>();
+    public TraineeDtoInput createUpdatedTraineeDtoInput(User user, List<Trainer> trainers) {
+        return TraineeDtoInput.builder()
+                              .id(user.getId())
+                              .dateOfBirth(LocalDate.of(1987, 7, 7))
+                              .address("Api street 49")
+                              .userId(user.getId())
+                              .trainerIds(trainers.stream().map(Trainer::getId).collect(Collectors.toList()))
+                              .build();
+    }
 
+    public User createUser() {
+        return User.builder().id(1L).userName("testUser").password("testPassword").isActive(true).prefix(0).build();
+    }
+
+    public UserDtoOutput createUserDtoOutput(User user) {
+        return UserDtoOutput.builder()
+                            .id(user.getId())
+                            .firstName(user.getFirstName())
+                            .lastName(user.getLastName())
+                            .userName(user.getUserName())
+                            .isActive(user.getIsActive())
+                            .build();
+    }
+
+    public List<Trainer> createSelectedTrainers() {
         Trainer trainer1 = new Trainer();
         trainer1.setId(2L);
 
-        selectedTrainers.add(trainer1);
         Trainer trainer2 = new Trainer();
         trainer2.setId(3L);
-        selectedTrainers.add(trainer2);
 
-        return selectedTrainers;
+        return List.of(trainer1, trainer2);
     }
 
-    public Trainee createTestTraineeToSave() {
-        Trainee trainee = new Trainee();
-        trainee.setId(1L);
-        trainee.setAddress("Test Address");
-        trainee.setDateOfBirth(LocalDate.of(2000, 1, 1));
-        trainee.setTrainers(new ArrayList<>());
-        trainee.setUserId(2L);
+    public List<Trainer> createUpdatedSelectedTrainers() {
+        Trainer trainer1 = new Trainer();
+        trainer1.setId(4L);
 
-        return trainee;
+        Trainer trainer2 = new Trainer();
+        trainer2.setId(5L);
+
+        return List.of(trainer1, trainer2);
     }
 
-    private Trainee createTestTrainee() {
-        Trainee trainee = new Trainee();
-        trainee.setId(1L);
-        trainee.setUserId(1L);
-        trainee.setAddress("Test Address");
-        trainee.setDateOfBirth(LocalDate.of(2000, 1, 1));
-        trainee.setTrainers(new ArrayList<>());
+    public Trainee createTraineeToSave(TraineeDtoInput traineeDtoInput, List<Trainer> trainers, User user) {
+        return Trainee.builder()
+                      .address(traineeDtoInput.getAddress())
+                      .dateOfBirth(traineeDtoInput.getDateOfBirth())
+                      .trainers(trainers)
+                      .user(user)
+                      .build();
+    }
 
-        return trainee;
+    public TraineeDtoOutput createSavedTrainee(Trainee trainee, UserDtoOutput userDtoOutput) {
+        return TraineeDtoOutput.builder()
+                               .id(trainee.getUser().getId())
+                               .address(trainee.getAddress())
+                               .dateOfBirth(trainee.getDateOfBirth())
+                               .trainerIds(
+                                       trainee.getTrainers().stream().map(Trainer::getId).collect(Collectors.toList()))
+                               .user(userDtoOutput)
+                               .build();
     }
 }

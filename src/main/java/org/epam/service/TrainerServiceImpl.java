@@ -5,21 +5,22 @@ import lombok.extern.slf4j.Slf4j;
 import org.epam.error.AccessException;
 import org.epam.error.NotFoundException;
 import org.epam.mapper.TrainerMapper;
-import org.epam.mapper.UserMapper;
 import org.epam.model.Trainee;
 import org.epam.model.Trainer;
+import org.epam.model.TrainingType;
 import org.epam.model.User;
 import org.epam.model.dto.TrainerDtoInput;
 import org.epam.model.dto.TrainerDtoOutput;
 import org.epam.repo.TraineeRepo;
 import org.epam.repo.TrainerRepo;
+import org.epam.repo.TrainingTypeRepo;
 import org.epam.repo.UserRepo;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -33,137 +34,109 @@ public class TrainerServiceImpl implements TrainerService {
 
     private final TraineeRepo traineeRepo;
 
+    private final TrainerMapper trainerMapper;
+
+    private final TrainingTypeRepo trainingTypeRepo;
+
+    private final AuthenticationService authenticationService;
+
+    private final UserService userService;
+
     @Override
     @Transactional
     public TrainerDtoOutput save(TrainerDtoInput trainerDtoInput) {
         log.info("save, trainerDtoInput = {}", trainerDtoInput);
-        User user =
-                userRepo.findById(trainerDtoInput.getUserId()).orElseThrow(() -> new NotFoundException("Not found"));
 
-        List<Trainee> selectedTrainees = traineeRepo.findAllById(trainerDtoInput.getTraineeIds());
-        Trainer trainerToSave = TrainerMapper.INSTANCE.toEntity(trainerDtoInput);
+        checkUserExisting(trainerDtoInput.getUserId());
+
+        List<Trainee> selectedTrainees = traineeRepo.findAllByIdIn(trainerDtoInput.getTraineeIds());
+        User user = userRepo.findById(trainerDtoInput.getUserId())
+                            .orElseThrow(() -> new AccessException("You don't have access for this."));
+        TrainingType trainingType = trainingTypeRepo.findById(trainerDtoInput.getTrainingTypeId())
+                                                    .orElseThrow(() -> new AccessException(
+                                                            "You don't have access for this."));
+
+        Trainer trainerToSave = trainerMapper.toEntity(trainerDtoInput);
+        trainerToSave.setTrainingType(trainingType);
         trainerToSave.setTrainees(selectedTrainees);
+        trainerToSave.setUser(user);
 
         Trainer trainer = trainerRepo.save(trainerToSave);
-
-        for (Trainee trainee : selectedTrainees) {
-            trainee.getTrainers().add(trainer);
-        }
-
+        selectedTrainees.forEach(t -> t.getTrainers().add(trainer));
         traineeRepo.saveAll(selectedTrainees);
 
-        return createTrainerDtoOutput(trainer, user);
+        return trainerMapper.toDtoOutput(trainer);
     }
 
     @Override
     public TrainerDtoOutput getByUserName(String userName, String password) {
         log.info("getByUserName, userName = {}", userName);
-        User user = getUserByUserName(userName);
 
-        if (authenticate(password, user)) {
-            throw new AccessException("You don't have access for this.");
-        }
+        User user = getUserByUserName(userName);
+        authenticate(password, user);
 
         Trainer trainer = trainerRepo.findByUserId(user.getId()).orElseThrow(() -> new NotFoundException("Not found"));
 
-        return createTrainerDtoOutput(trainer, user);
-    }
-
-    @Override
-    @Transactional
-    public TrainerDtoOutput changePassword(String userName, String oldPassword, String newPassword) {
-        log.info("changePassword, userName = {}", userName);
-        User user = getUserByUserName(userName);
-
-        if (authenticate(oldPassword, user)) {
-            throw new AccessException("You don't have access for this.");
-        }
-
-        user.setPassword(newPassword);
-        User updatedUser = userRepo.save(user);
-
-        Trainer trainer = trainerRepo.findByUserId(user.getId()).orElseThrow(() -> new NotFoundException("Not found"));
-
-        return createTrainerDtoOutput(trainer, updatedUser);
+        return trainerMapper.toDtoOutput(trainer);
     }
 
     @Override
     @Transactional
     public TrainerDtoOutput updateProfile(String userName, String password, TrainerDtoInput trainerDtoInput) {
         log.info("updateProfile, userName = {}", userName);
-        User user = getUserByUserName(userName);
 
-        if (authenticate(password, user)) {
-            throw new AccessException("You don't have access for this.");
-        }
+        User user = getUserByUserName(userName);
+        authenticate(password, user, trainerDtoInput);
 
         Trainer trainer = trainerRepo.findByUserId(user.getId()).orElseThrow(() -> new NotFoundException("Not found"));
 
-        trainer.setTrainingTypeId(trainerDtoInput.getTrainingTypeId());
-        trainer.setUserId(trainerDtoInput.getUserId());
+        if (!trainerDtoInput.getTrainingTypeId().equals(trainer.getTrainingType().getId())) {
+            TrainingType trainingType = trainingTypeRepo.findById(trainerDtoInput.getTrainingTypeId())
+                                                        .orElseThrow(() -> new AccessException(
+                                                                "You don't have access for this."));
+            trainer.setTrainingType(trainingType);
+        }
+
         Trainer updatedTrainer = trainerRepo.save(trainer);
 
-        return createTrainerDtoOutput(updatedTrainer, user);
-    }
-
-    @Override
-    @Transactional
-    public TrainerDtoOutput switchActivate(String userName, String password) {
-        log.info("switchActivate, userName = {}", userName);
-        User user = getUserByUserName(userName);
-
-        if (authenticate(password, user)) {
-            throw new AccessException("You don't have access for this.");
-        }
-
-        Trainer trainer = trainerRepo.findByUserId(user.getId()).orElseThrow(() -> new NotFoundException("Not found"));
-
-        user.setIsActive(!user.getIsActive());
-        User updatedUser = userRepo.save(user);
-
-        return createTrainerDtoOutput(trainer, updatedUser);
+        return trainerMapper.toDtoOutput(updatedTrainer);
     }
 
     @Override
     public List<TrainerDtoOutput> getTrainersWithEmptyTrainees() {
         log.info("getTrainersWithEmptyTrainees");
-        List<Trainer> trainers = trainerRepo.findTrainersWithEmptyTraineesList();
+
+        List<Trainer> trainers = trainerRepo.findByTraineesIsEmpty();
 
         if (trainers.isEmpty()) {
             return new ArrayList<>();
         }
 
-        List<Long> userIds = trainers.stream().map(Trainer::getUserId).collect(Collectors.toList());
-        Map<Long, User> userMap =
-                userRepo.findAllById(userIds).stream().collect(Collectors.toMap(User::getId, user -> user));
-
-        List<TrainerDtoOutput> trainerDtoOutputs = new ArrayList<>();
-
-        for (Trainer trainer : trainers) {
-            trainerDtoOutputs.add(createTrainerDtoOutput(trainer, userMap.get(trainer.getUserId())));
-        }
-
-        return trainerDtoOutputs;
+        return trainers.stream()
+                       .map(trainerMapper::toDtoOutput)
+                       .collect(Collectors.toList());
     }
 
     private User getUserByUserName(String userName) {
-        return userRepo.findByUserName(userName).orElseThrow(() -> new NotFoundException("User not found"));
+        return userService.findUserByUsername(userName)
+                          .orElseThrow(() -> new NotFoundException("User not found"));
     }
 
-    private TrainerDtoOutput createTrainerDtoOutput(Trainer trainer, User user) {
-        return TrainerDtoOutput.builder()
-                               .id(trainer.getId())
-                               .trainingTypeId(trainer.getTrainingTypeId())
-                               .user(UserMapper.INSTANCE.toDto(user))
-                               .traineeIds(convertToTraineeIds(trainer.getTrainees()))
-                               .build();
+    public void authenticate(String password, User user, TrainerDtoInput trainerDtoInput) {
+        if (authenticationService.checkAccess(password, user) || !Objects.equals(user.getId(), trainerDtoInput.getId())) {
+            throw new AccessException("You don't have access for this.");
+        }
     }
 
-    private boolean authenticate(String password, User user) {
-        return !user.getPassword().equals(password);
+    public void authenticate(String password, User user) {
+        if (authenticationService.checkAccess(password, user)) {
+            throw new AccessException("You don't have access for this.");
+        }
     }
 
-    private List<Long> convertToTraineeIds(List<Trainee> trainees) {
-        return trainees.stream().map(Trainee::getId).collect(Collectors.toList());
+    public void checkUserExisting(Long id) {
+        if (!userRepo.existsById(id)) {
+            throw new AccessException("You don't have access for this.");
+        }
     }
 }

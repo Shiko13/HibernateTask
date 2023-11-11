@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.epam.model.dto.TrainerDtoInput;
 import org.epam.model.dto.TrainerDtoOutput;
 import org.epam.service.TrainerService;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -14,6 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
+@Validated
 @RestController
 @RequestMapping("/trainer")
 @RequiredArgsConstructor
@@ -36,20 +38,9 @@ public class TrainerController {
         return trainerService.save(trainerDtoInput);
     }
 
-    @PutMapping("/password")
-    public TrainerDtoOutput changePassword(@RequestParam String userName, @RequestParam String oldPassword,
-                                           @RequestParam String newPassword) {
-        return trainerService.changePassword(userName, oldPassword, newPassword);
-    }
-
     @PutMapping("/profile")
     public TrainerDtoOutput updateProfile(@RequestParam String userName, @RequestParam String password,
                                           @RequestBody TrainerDtoInput trainerDtoInput) {
         return trainerService.updateProfile(userName, password, trainerDtoInput);
-    }
-
-    @PutMapping("/activate")
-    public TrainerDtoOutput switchActivate(@RequestParam String userName, @RequestParam String password) {
-        return trainerService.switchActivate(userName, password);
     }
 }

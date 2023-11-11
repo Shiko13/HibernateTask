@@ -1,8 +1,15 @@
 package controller;
 
 import org.epam.controller.TrainingController;
+import org.epam.model.dto.TraineeTrainingDtoOutput;
+import org.epam.model.dto.TraineeTrainingShortDtoOutput;
+import org.epam.model.dto.TrainerTrainingDtoOutput;
+import org.epam.model.dto.TrainerTrainingShortDtoOutput;
 import org.epam.model.dto.TrainingDtoInput;
 import org.epam.model.dto.TrainingDtoOutput;
+import org.epam.model.dto.TrainingShortDtoOutput;
+import org.epam.model.dto.TrainingTypeOutputDto;
+import org.epam.model.dto.UserDtoOutput;
 import org.epam.service.TrainingService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -22,7 +29,6 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -49,8 +55,8 @@ public class TrainingControllerTest {
         LocalDate endDate = LocalDate.of(2023, 12, 31);
         String traineeUsername = "testUser";
 
-        when(trainingService.findByDateRangeAndTraineeUserName(startDate, endDate, traineeUsername))
-                .thenReturn(expectedList);
+        when(trainingService.findByDateRangeAndTraineeUserName(startDate, endDate, traineeUsername)).thenReturn(
+                expectedList);
 
         mockMvc.perform(MockMvcRequestBuilders.get("/training/criteria-trainee")
                                               .param("startDate", "2023-01-01")
@@ -69,8 +75,8 @@ public class TrainingControllerTest {
         LocalDate endDate = LocalDate.of(2023, 12, 31);
         String trainerUsername = "testTrainer";
 
-        when(trainingService.findByDateRangeAndTrainerUserName(startDate, endDate, trainerUsername))
-                .thenReturn(expectedList);
+        when(trainingService.findByDateRangeAndTrainerUserName(startDate, endDate, trainerUsername)).thenReturn(
+                expectedList);
 
         mockMvc.perform(MockMvcRequestBuilders.get("/training/criteria-trainer")
                                               .param("startDate", "2023-01-01")
@@ -85,28 +91,42 @@ public class TrainingControllerTest {
     @Test
     void save_ShouldReturnTrainingDtoOutput() {
         TrainingDtoInput trainingDtoInput = createTestTrainingDtoInput();
-        TrainingDtoOutput expected = createTrainingDtoOutput();
+        TrainingShortDtoOutput expected = createTrainingDtoOutput();
 
-        when(trainingService.save(any(TrainingDtoInput.class))).thenReturn(expected);
+        when(trainingService.save(trainingDtoInput)).thenReturn(expected);
 
-        TrainingDtoOutput result = trainingController.save(trainingDtoInput);
+        TrainingShortDtoOutput result = trainingController.save(trainingDtoInput);
 
         assertNotNull(result);
         assertEquals(expected.getId(), result.getId());
-        assertEquals(expected.getTraineeId(), result.getTraineeId());
-        assertEquals(expected.getTrainerId(), result.getTrainerId());
+        assertEquals(expected.getTrainee(), result.getTrainee());
+        assertEquals(expected.getTrainer(), result.getTrainer());
         assertEquals(expected.getName(), result.getName());
-        assertEquals(expected.getTypeId(), result.getTypeId());
-
+        assertEquals(expected.getType(), result.getType());
         assertEquals(expected.getDate().toString(), result.getDate().toString());
         assertEquals(expected.getDuration(), result.getDuration());
     }
 
     private List<TrainingDtoOutput> createExpectedTrainingDtoOutputList() {
         List<TrainingDtoOutput> trainingDtoOutputs = new ArrayList<>();
+        TraineeTrainingDtoOutput trainee1 =
+                new TraineeTrainingDtoOutput(1L, LocalDate.of(2002, 5, 5), "Jameson street 29",
+                        new UserDtoOutput(1L, "James", "Johnson", "james.johnson", true));
+        TraineeTrainingDtoOutput trainee2 = new TraineeTrainingDtoOutput(2L, LocalDate.of(2000, 6, 6), "Spam street 30",
+                new UserDtoOutput(2L, "Jasmin", "Johansson", "jasmin.johansson", true));
 
-        TrainingDtoOutput training1 = createExpectedTrainingDtoOutput(1L, 1L, 2L, "Training1", 1L, LocalDate.of(2023, 1, 1), 60);
-        TrainingDtoOutput training2 = createExpectedTrainingDtoOutput(2L, 2L, 3L, "Training2", 2L, LocalDate.of(2023, 2, 1), 90);
+        TrainingTypeOutputDto trainingType1 = new TrainingTypeOutputDto(1L, "Box");
+        TrainingTypeOutputDto trainingType2 = new TrainingTypeOutputDto(2L, "Zumba");
+
+        TrainerTrainingDtoOutput trainer1 = new TrainerTrainingDtoOutput(3L, trainingType1,
+                new UserDtoOutput(3L, "Alisa", "Smith", "alisa.smith", true));
+        TrainerTrainingDtoOutput trainer2 = new TrainerTrainingDtoOutput(4L, trainingType2,
+                new UserDtoOutput(4L, "Nikita", "Ivanov", "nikita.ivanov", true));
+
+        TrainingDtoOutput training1 =
+                createExpectedTrainingDtoOutput(1L, trainee1, trainer1, "Training1", trainingType1, LocalDate.of(2023, 1, 1), 60);
+        TrainingDtoOutput training2 =
+                createExpectedTrainingDtoOutput(2L, trainee2, trainer2, "Training2", trainingType2, LocalDate.of(2023, 2, 1), 90);
 
         trainingDtoOutputs.add(training1);
         trainingDtoOutputs.add(training2);
@@ -114,14 +134,16 @@ public class TrainingControllerTest {
         return trainingDtoOutputs;
     }
 
-    private TrainingDtoOutput createExpectedTrainingDtoOutput(Long id, Long traineeId, Long trainerId, String name,
-                                                              Long typeId, LocalDate date, long duration) {
+    private TrainingDtoOutput createExpectedTrainingDtoOutput(Long id, TraineeTrainingDtoOutput trainee,
+                                                              TrainerTrainingDtoOutput trainer, String name,
+                                                              TrainingTypeOutputDto trainingType, LocalDate date,
+                                                              long duration) {
         TrainingDtoOutput expected = new TrainingDtoOutput();
         expected.setId(id);
-        expected.setTraineeId(traineeId);
-        expected.setTrainerId(trainerId);
+        expected.setTrainee(trainee);
+        expected.setTrainer(trainer);
         expected.setName(name);
-        expected.setTypeId(typeId);
+        expected.setType(trainingType);
         expected.setDate(date);
         expected.setDuration(duration);
 
@@ -140,13 +162,14 @@ public class TrainingControllerTest {
         return trainingDtoInput;
     }
 
-    private TrainingDtoOutput createTrainingDtoOutput() {
-        TrainingDtoOutput expected = new TrainingDtoOutput();
+    private TrainingShortDtoOutput createTrainingDtoOutput() {
+        TrainingShortDtoOutput expected = new TrainingShortDtoOutput();
+        TrainingTypeOutputDto trainingTypeOutputDto = new TrainingTypeOutputDto(3L, "Yoga");
         expected.setId(1L);
-        expected.setTraineeId(1L);
-        expected.setTrainerId(2L);
+        expected.setTrainee(new TraineeTrainingShortDtoOutput(1L, LocalDate.of(1999, 11, 15), "Madison street 5"));
+        expected.setTrainer(new TrainerTrainingShortDtoOutput(2L, trainingTypeOutputDto));
         expected.setName("Training 1");
-        expected.setTypeId(3L);
+        expected.setType(trainingTypeOutputDto);
         expected.setDate(LocalDate.of(2023, 1, 1));
         expected.setDuration(60L);
 

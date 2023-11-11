@@ -11,11 +11,7 @@ public interface TrainerService {
 
     TrainerDtoOutput getByUserName(String userName, String password);
 
-    TrainerDtoOutput changePassword(String userName, String oldPassword, String newPassword);
-
     TrainerDtoOutput updateProfile(String userName, String password, TrainerDtoInput trainerDtoInput);
-
-    TrainerDtoOutput switchActivate(String userName, String password);
 
     List<TrainerDtoOutput> getTrainersWithEmptyTrainees();
 }

@@ -2,11 +2,19 @@ package org.epam.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.epam.error.AccessException;
 import org.epam.mapper.TrainingMapper;
+import org.epam.model.Trainee;
+import org.epam.model.Trainer;
 import org.epam.model.Training;
+import org.epam.model.TrainingType;
 import org.epam.model.dto.TrainingDtoInput;
 import org.epam.model.dto.TrainingDtoOutput;
+import org.epam.model.dto.TrainingShortDtoOutput;
+import org.epam.repo.TraineeRepo;
+import org.epam.repo.TrainerRepo;
 import org.epam.repo.TrainingRepo;
+import org.epam.repo.TrainingTypeRepo;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,22 +28,34 @@ public class TrainingServiceImpl implements TrainingService {
 
     private final TrainingRepo trainingRepo;
 
+    private final TraineeRepo traineeRepo;
+
+    private final TrainerRepo trainerRepo;
+
+    private final TrainingTypeRepo trainingTypeRepo;
+
+    private final TrainingMapper trainingMapper;
+
     @Override
     @Transactional
-    public TrainingDtoOutput save(TrainingDtoInput trainingDtoInput) {
+    public TrainingShortDtoOutput save(TrainingDtoInput trainingDtoInput) {
         log.info("save, trainingDtoInput = {}", trainingDtoInput);
-        Training trainingToSave = TrainingMapper.INSTANCE.toEntity(trainingDtoInput);
+
+        Training trainingToSave = trainingMapper.toEntity(trainingDtoInput);
+        Trainee trainee = traineeRepo.findById(trainingDtoInput.getTraineeId())
+                                     .orElseThrow(() -> new AccessException("You don't have access for this."));
+        Trainer trainer = trainerRepo.findById(trainingDtoInput.getTrainerId())
+                                     .orElseThrow(() -> new AccessException("You don't have access for this."));
+        TrainingType trainingType = trainingTypeRepo.findById(trainingDtoInput.getTypeId())
+                                                    .orElseThrow(() -> new AccessException("You don't have access for this."));
+
+        trainingToSave.setTrainee(trainee);
+        trainingToSave.setTrainer(trainer);
+        trainingToSave.setTrainingType(trainingType);
+
         Training savedTraining = trainingRepo.save(trainingToSave);
 
-        return TrainingDtoOutput.builder()
-                                .id(savedTraining.getId())
-                                .traineeId(savedTraining.getTraineeId())
-                                .trainerId(savedTraining.getTrainerId())
-                                .name(savedTraining.getName())
-                                .typeId(savedTraining.getTypeId())
-                                .date(savedTraining.getDate())
-                                .duration(savedTraining.getDuration())
-                                .build();
+        return trainingMapper.toShortDtoOutput(savedTraining);
     }
 
     @Override
@@ -43,9 +63,9 @@ public class TrainingServiceImpl implements TrainingService {
                                                                      String traineeUsername) {
         log.info("findByDateRangeAndTraineeUserName, startDate = {}, endDate = {}, traineeUsername = {}", startDate,
                 endDate, traineeUsername);
-        List<Training> trainings = trainingRepo.findByDateRangeAndTraineeUsername(startDate, endDate, traineeUsername);
+        List<Training> trainings = trainingRepo.findByDateBetweenAndTraineeUserUserName(startDate, endDate, traineeUsername);
 
-        return TrainingMapper.INSTANCE.toDtoList(trainings);
+        return trainingMapper.toDtoList(trainings);
     }
 
     @Override
@@ -53,8 +73,8 @@ public class TrainingServiceImpl implements TrainingService {
                                                                      String trainerUsername) {
         log.info("findByDateRangeAndTrainerUserName, startDate = {}, endDate = {}, trainerUsername = {}", startDate,
                 endDate, trainerUsername);
-        List<Training> trainings = trainingRepo.findByDateRangeAndTrainerUsername(startDate, endDate, trainerUsername);
+        List<Training> trainings = trainingRepo.findByDateBetweenAndTrainerUserUserName(startDate, endDate, trainerUsername);
 
-        return TrainingMapper.INSTANCE.toDtoList(trainings);
+        return trainingMapper.toDtoList(trainings);
     }
 }

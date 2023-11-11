@@ -1,14 +1,16 @@
 package org.epam.model.dto;
 
-import lombok.EqualsAndHashCode;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Getter
 @Setter
-@EqualsAndHashCode
+@Builder
 @NoArgsConstructor
+@AllArgsConstructor
 public class UserDtoOutput {
 
     private Long id;

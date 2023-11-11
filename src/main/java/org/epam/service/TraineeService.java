@@ -9,13 +9,9 @@ public interface TraineeService {
 
     TraineeDtoOutput getByUserName(String userName, String password);
 
-    TraineeDtoOutput changePassword(String userName, String oldPassword, String newPassword);
-
     TraineeDtoOutput updateProfile(String userName, String password, TraineeDtoInput traineeDtoInput);
 
     TraineeDtoOutput updateTrainerList(String userName, String password, TraineeDtoInput traineeDtoInput);
-
-    TraineeDtoOutput switchActivate(String userName, String password);
 
     void deleteByUsername(String userName, String password);
 }

@@ -3,7 +3,6 @@ package controller;
 import org.epam.controller.TraineeController;
 import org.epam.model.dto.TraineeDtoInput;
 import org.epam.model.dto.TraineeDtoOutput;
-import org.epam.model.dto.UserDtoOutput;
 import org.epam.service.TraineeService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -28,6 +27,7 @@ class TraineeControllerTest {
 
     @Mock
     private TraineeService traineeService;
+
 
     @Test
     void getByUserName_ShouldReturnTraineeDtoOutput() {
@@ -56,20 +56,6 @@ class TraineeControllerTest {
         assertEquals(expectedOutput, result);
     }
 
-    @Test
-    void changePassword_ShouldReturnTraineeDtoOutput() {
-        String userName = "testUser";
-        String oldPassword = "oldPassword";
-        String newPassword = "newPassword";
-        TraineeDtoOutput expectedOutput = createExpectedTraineeDtoOutput();
-
-        when(traineeService.changePassword(userName, oldPassword, newPassword)).thenReturn(expectedOutput);
-
-        TraineeDtoOutput result = traineeController.changePassword(userName, oldPassword, newPassword);
-
-        assertNotNull(result);
-        assertEquals(expectedOutput, result);
-    }
 
     @Test
     void updateProfile_ShouldReturnTraineeDtoOutput() {
@@ -102,20 +88,6 @@ class TraineeControllerTest {
     }
 
     @Test
-    void switchActivate_ShouldReturnTraineeDtoOutput() {
-        String userName = "testUser";
-        String password = "testPassword";
-        TraineeDtoOutput expectedOutput = createExpectedTraineeDtoOutput();
-
-        when(traineeService.switchActivate(userName, password)).thenReturn(expectedOutput);
-
-        TraineeDtoOutput result = traineeController.switchActivate(userName, password);
-
-        assertNotNull(result);
-        assertEquals(expectedOutput, result);
-    }
-
-    @Test
     void deleteByUsername_ShouldReturnNoContentResponse() {
         String userName = "testUser";
         String password = "testPassword";
@@ -141,14 +113,6 @@ class TraineeControllerTest {
         TraineeDtoOutput traineeDtoOutput = new TraineeDtoOutput();
         traineeDtoOutput.setDateOfBirth(LocalDate.of(1990, 5, 15));
         traineeDtoOutput.setAddress("123 Main Street");
-
-        UserDtoOutput userDtoOutput = new UserDtoOutput();
-        userDtoOutput.setId(1L);
-        userDtoOutput.setFirstName("John");
-        userDtoOutput.setLastName("Doe");
-        userDtoOutput.setIsActive(true);
-
-        traineeDtoOutput.setUser(userDtoOutput);
 
         traineeDtoOutput.setTrainerIds(Arrays.asList(2L, 3L, 4L));
 

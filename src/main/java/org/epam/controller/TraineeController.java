@@ -5,6 +5,7 @@ import org.epam.model.dto.TraineeDtoInput;
 import org.epam.model.dto.TraineeDtoOutput;
 import org.epam.service.TraineeService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -14,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+@Validated
 @RestController
 @RequestMapping("/trainee")
 @RequiredArgsConstructor
@@ -31,12 +33,6 @@ public class TraineeController {
         return traineeService.save(traineeDtoInput);
     }
 
-    @PutMapping("/password")
-    public TraineeDtoOutput changePassword(@RequestParam String userName, @RequestParam String oldPassword,
-                                           @RequestParam String newPassword) {
-        return traineeService.changePassword(userName, oldPassword, newPassword);
-    }
-
     @PutMapping("/profile")
     public TraineeDtoOutput updateProfile(@RequestParam String userName, @RequestParam String password,
                                           @RequestBody TraineeDtoInput traineeDtoInput) {
@@ -47,11 +43,6 @@ public class TraineeController {
     public TraineeDtoOutput updateTrainerList(@RequestParam String userName, @RequestParam String password,
                                               @RequestBody TraineeDtoInput traineeDtoInput) {
         return traineeService.updateTrainerList(userName, password, traineeDtoInput);
-    }
-
-    @PutMapping("/activate")
-    public TraineeDtoOutput switchActivate(@RequestParam String userName, @RequestParam String password) {
-        return traineeService.switchActivate(userName, password);
     }
 
     @DeleteMapping()
