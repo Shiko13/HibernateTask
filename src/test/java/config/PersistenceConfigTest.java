@@ -13,13 +13,13 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 @SpringBootTest
 @SpringJUnitConfig(classes = {PersistenceConfig.class})
 @TestPropertySource("classpath:application.properties")
-public class PersistenceConfigTest {
+class PersistenceConfigTest {
 
     @Autowired
     private Environment environment;
 
     @Test
-    public void testDataSourceBeanExists() {
+    void testDataSourceBeanExists() {
         assertNotNull(environment.getProperty("jdbc.driverClassName"));
         assertNotNull(environment.getProperty("jdbc.url"));
         assertNotNull(environment.getProperty("jdbc.username"));

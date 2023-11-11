@@ -160,14 +160,18 @@ class TrainerServiceTest {
 
     @Test
     void updateProfile_WithValidInput_ShouldThrowAccessException() {
+        String userName = user.getUserName();
+        String password = user.getPassword();
         TrainerDtoInput updatedTrainer = createUpdatedTrainerDtoInput(user, selectedTrainees);
 
         when(trainerRepo.findByUserId(user.getId())).thenReturn(Optional.of(trainerToSave));
         when(userService.findUserByUsername(user.getUserName())).thenReturn(Optional.of(user));
 
-        AccessException exception = assertThrows(AccessException.class,
-                () -> trainerService.updateProfile(user.getUserName(), user.getPassword(), updatedTrainer),
-                "An AccessException should be thrown when the user does not exist");
+        AccessException exception = assertThrows(
+                AccessException.class,
+                () -> trainerService.updateProfile(userName, password, updatedTrainer),
+                "An AccessException should be thrown when the user does not exist"
+        );
 
         assertEquals("You don't have access for this.", exception.getMessage());
     }
@@ -221,12 +225,13 @@ class TrainerServiceTest {
 
     @Test
     void authenticate_MismatchedIds_AccessExceptionThrown() {
+        String password = user.getPassword();
         trainerDtoInput.setId(user.getId() + 1);
 
         when(authenticationService.checkAccess(user.getPassword(), user)).thenReturn(false);
 
         AccessException exception = assertThrows(AccessException.class,
-                () -> trainerService.authenticate(user.getPassword(), user, trainerDtoInput),
+                () -> trainerService.authenticate(password, user, trainerDtoInput),
                 "An AccessException should be thrown for mismatched IDs");
 
         verify(authenticationService).checkAccess(user.getPassword(), user);

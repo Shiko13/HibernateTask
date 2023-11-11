@@ -8,10 +8,10 @@ import java.util.Set;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class RandomStringGeneratorTest {
+class RandomStringGeneratorTest {
 
     @Test
-    public void testGenerateRandomString() {
+    void testGenerateRandomString() {
         int length = 10;
         String randomString = RandomStringGenerator.generateRandomString(length);
 
@@ -21,7 +21,7 @@ public class RandomStringGeneratorTest {
     }
 
     @Test
-    public void testGenerateUniqueRandomStrings() {
+    void testGenerateUniqueRandomStrings() {
         int numberOfStrings = 100;
         int length = 8;
         Set<String> generatedStrings = new HashSet<>();

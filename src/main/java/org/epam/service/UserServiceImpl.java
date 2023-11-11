@@ -3,6 +3,7 @@ package org.epam.service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.epam.error.AccessException;
+import org.epam.error.ErrorMessageConstants;
 import org.epam.mapper.UserMapper;
 import org.epam.model.User;
 import org.epam.model.dto.UserDtoInput;
@@ -44,7 +45,7 @@ public class UserServiceImpl implements UserService {
         User user = getUserByUserName(userName);
 
         if (authenticationService.checkAccess(oldPassword, user)) {
-            throw new AccessException("You don't have access for this.");
+            throw new AccessException(ErrorMessageConstants.ACCESS_ERROR_MESSAGE);
         }
 
         user.setPassword(newPassword);
@@ -57,7 +58,7 @@ public class UserServiceImpl implements UserService {
 
         User user = getUserByUserName(userName);
         if (authenticationService.checkAccess(password, user)) {
-            throw new AccessException("You don't have access for this.");
+            throw new AccessException(ErrorMessageConstants.ACCESS_ERROR_MESSAGE);
         }
 
         user.setIsActive(!user.getIsActive());
@@ -80,7 +81,7 @@ public class UserServiceImpl implements UserService {
 
     private User getUserByUserName(String userName) {
         return userRepo.findByUserName(userName)
-                       .orElseThrow(() -> new AccessException("You don't have access for this."));
+                       .orElseThrow(() -> new AccessException(ErrorMessageConstants.ACCESS_ERROR_MESSAGE));
     }
 
 

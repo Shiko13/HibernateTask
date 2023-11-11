@@ -3,6 +3,7 @@ package org.epam.service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.epam.error.AccessException;
+import org.epam.error.ErrorMessageConstants;
 import org.epam.mapper.TrainingMapper;
 import org.epam.model.Trainee;
 import org.epam.model.Trainer;
@@ -43,11 +44,11 @@ public class TrainingServiceImpl implements TrainingService {
 
         Training trainingToSave = trainingMapper.toEntity(trainingDtoInput);
         Trainee trainee = traineeRepo.findById(trainingDtoInput.getTraineeId())
-                                     .orElseThrow(() -> new AccessException("You don't have access for this."));
+                                     .orElseThrow(() -> new AccessException(ErrorMessageConstants.ACCESS_ERROR_MESSAGE));
         Trainer trainer = trainerRepo.findById(trainingDtoInput.getTrainerId())
-                                     .orElseThrow(() -> new AccessException("You don't have access for this."));
+                                     .orElseThrow(() -> new AccessException(ErrorMessageConstants.ACCESS_ERROR_MESSAGE));
         TrainingType trainingType = trainingTypeRepo.findById(trainingDtoInput.getTypeId())
-                                                    .orElseThrow(() -> new AccessException("You don't have access for this."));
+                                                    .orElseThrow(() -> new AccessException(ErrorMessageConstants.ACCESS_ERROR_MESSAGE));
 
         trainingToSave.setTrainee(trainee);
         trainingToSave.setTrainer(trainer);

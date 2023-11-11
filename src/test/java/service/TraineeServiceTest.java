@@ -114,10 +114,17 @@ class TraineeServiceTest {
 
     @Test
     void getByUserName_WhenUserDoesNotExist_ShouldThrowNotFoundException() {
+        String userName = user.getUserName();
+        String password = user.getPassword();
+
         when(authenticationService.checkAccess(user.getPassword(), user)).thenReturn(false);
         when(userService.findUserByUsername(user.getUserName())).thenReturn(Optional.ofNullable(user));
 
-        assertThrows(NotFoundException.class, () -> traineeService.getByUserName(user.getUserName(), user.getPassword()));
+        assertThrows(
+                NotFoundException.class,
+                () -> traineeService.getByUserName(userName, password),
+                "A NotFoundException should be thrown."
+        );
     }
 
     @Test
@@ -196,13 +203,16 @@ class TraineeServiceTest {
 
     @Test
     void authenticate_MismatchedIds_AccessExceptionThrown() {
+        String password = user.getPassword();
         traineeDtoInput.setId(user.getId() + 1);
 
         when(authenticationService.checkAccess(user.getPassword(), user)).thenReturn(false);
 
-        AccessException exception = assertThrows(AccessException.class,
-                () -> traineeService.authenticate(user.getPassword(), user, traineeDtoInput),
-                "An AccessException should be thrown for mismatched IDs");
+        AccessException exception = assertThrows(
+                AccessException.class,
+                () -> traineeService.authenticate(password, user, traineeDtoInput),
+                "An AccessException should be thrown for mismatched IDs"
+        );
 
         verify(authenticationService).checkAccess(user.getPassword(), user);
 

@@ -33,7 +33,7 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @ExtendWith(MockitoExtension.class)
-public class TrainingControllerTest {
+class TrainingControllerTest {
 
     private MockMvc mockMvc;
 
@@ -49,7 +49,7 @@ public class TrainingControllerTest {
     }
 
     @Test
-    public void findByDateRangeAndTrainee_ShouldReturnListOfTrainingDtoOutput() throws Exception {
+    void findByDateRangeAndTrainee_ShouldReturnListOfTrainingDtoOutput() throws Exception {
         List<TrainingDtoOutput> expectedList = createExpectedTrainingDtoOutputList();
         LocalDate startDate = LocalDate.of(2023, 1, 1);
         LocalDate endDate = LocalDate.of(2023, 12, 31);
@@ -69,7 +69,7 @@ public class TrainingControllerTest {
     }
 
     @Test
-    public void findByDateRangeAndTrainer_ShouldReturnListOfTrainingDtoOutput() throws Exception {
+    void findByDateRangeAndTrainer_ShouldReturnListOfTrainingDtoOutput() throws Exception {
         List<TrainingDtoOutput> expectedList = createExpectedTrainingDtoOutputList();
         LocalDate startDate = LocalDate.of(2023, 1, 1);
         LocalDate endDate = LocalDate.of(2023, 12, 31);

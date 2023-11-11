@@ -3,6 +3,7 @@ package org.epam.service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.epam.error.AccessException;
+import org.epam.error.ErrorMessageConstants;
 import org.epam.error.NotFoundException;
 import org.epam.mapper.TrainerMapper;
 import org.epam.model.Trainee;
@@ -42,6 +43,7 @@ public class TrainerServiceImpl implements TrainerService {
 
     private final UserService userService;
 
+
     @Override
     @Transactional
     public TrainerDtoOutput save(TrainerDtoInput trainerDtoInput) {
@@ -51,10 +53,10 @@ public class TrainerServiceImpl implements TrainerService {
 
         List<Trainee> selectedTrainees = traineeRepo.findAllByIdIn(trainerDtoInput.getTraineeIds());
         User user = userRepo.findById(trainerDtoInput.getUserId())
-                            .orElseThrow(() -> new AccessException("You don't have access for this."));
+                            .orElseThrow(() -> new AccessException(ErrorMessageConstants.ACCESS_ERROR_MESSAGE));
         TrainingType trainingType = trainingTypeRepo.findById(trainerDtoInput.getTrainingTypeId())
                                                     .orElseThrow(() -> new AccessException(
-                                                            "You don't have access for this."));
+                                                            ErrorMessageConstants.ACCESS_ERROR_MESSAGE));
 
         Trainer trainerToSave = trainerMapper.toEntity(trainerDtoInput);
         trainerToSave.setTrainingType(trainingType);
@@ -75,7 +77,7 @@ public class TrainerServiceImpl implements TrainerService {
         User user = getUserByUserName(userName);
         authenticate(password, user);
 
-        Trainer trainer = trainerRepo.findByUserId(user.getId()).orElseThrow(() -> new NotFoundException("Not found"));
+        Trainer trainer = trainerRepo.findByUserId(user.getId()).orElseThrow(() -> new NotFoundException(ErrorMessageConstants.NOT_FOUND_MESSAGE));
 
         return trainerMapper.toDtoOutput(trainer);
     }
@@ -88,12 +90,12 @@ public class TrainerServiceImpl implements TrainerService {
         User user = getUserByUserName(userName);
         authenticate(password, user, trainerDtoInput);
 
-        Trainer trainer = trainerRepo.findByUserId(user.getId()).orElseThrow(() -> new NotFoundException("Not found"));
+        Trainer trainer = trainerRepo.findByUserId(user.getId()).orElseThrow(() -> new NotFoundException(ErrorMessageConstants.NOT_FOUND_MESSAGE));
 
         if (!trainerDtoInput.getTrainingTypeId().equals(trainer.getTrainingType().getId())) {
             TrainingType trainingType = trainingTypeRepo.findById(trainerDtoInput.getTrainingTypeId())
                                                         .orElseThrow(() -> new AccessException(
-                                                                "You don't have access for this."));
+                                                                ErrorMessageConstants.ACCESS_ERROR_MESSAGE));
             trainer.setTrainingType(trainingType);
         }
 
@@ -119,24 +121,24 @@ public class TrainerServiceImpl implements TrainerService {
 
     private User getUserByUserName(String userName) {
         return userService.findUserByUsername(userName)
-                          .orElseThrow(() -> new NotFoundException("User not found"));
+                          .orElseThrow(() -> new NotFoundException(ErrorMessageConstants.NOT_FOUND_MESSAGE));
     }
 
     public void authenticate(String password, User user, TrainerDtoInput trainerDtoInput) {
         if (authenticationService.checkAccess(password, user) || !Objects.equals(user.getId(), trainerDtoInput.getId())) {
-            throw new AccessException("You don't have access for this.");
+            throw new AccessException(ErrorMessageConstants.ACCESS_ERROR_MESSAGE);
         }
     }
 
     public void authenticate(String password, User user) {
         if (authenticationService.checkAccess(password, user)) {
-            throw new AccessException("You don't have access for this.");
+            throw new AccessException(ErrorMessageConstants.ACCESS_ERROR_MESSAGE);
         }
     }
 
     public void checkUserExisting(Long id) {
         if (!userRepo.existsById(id)) {
-            throw new AccessException("You don't have access for this.");
+            throw new AccessException(ErrorMessageConstants.ACCESS_ERROR_MESSAGE);
         }
     }
 }

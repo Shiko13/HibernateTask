@@ -23,7 +23,6 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -108,11 +107,13 @@ class UserServiceTest {
 
     @Test
     void switchActivate_WithIncorrectPassword_ShouldThrowAccessException() {
+        String userName = savedUser.getUserName();
+
         when(userRepo.findByUserName(savedUser.getUserName())).thenReturn(Optional.of(savedUser));
         when(authenticationService.checkAccess("Incorrect password", savedUser)).thenReturn(true);
 
-        AccessException exception = assertThrows(AccessException.class,
-                () -> userService.switchActivate(savedUser.getUserName(), "Incorrect password"));
+        AccessException exception =
+                assertThrows(AccessException.class, () -> userService.switchActivate(userName, "Incorrect password"));
         assertEquals("You don't have access for this.", exception.getMessage());
     }
 
@@ -171,15 +172,18 @@ class UserServiceTest {
 
     @Test
     void changePassword_InvalidOldPassword_ThrowsAccessException() {
+        String userName = savedUser.getUserName();
+        String password = savedUser.getPassword();
+        String invalidPassword = "Invalid password";
         User userWithInvalidPassword = createTestUser(userDtoInput);
-        userWithInvalidPassword.setPassword("Invalid password");
+        userWithInvalidPassword.setPassword(invalidPassword);
 
         when(userRepo.findByUserName(savedUser.getUserName())).thenReturn(java.util.Optional.of(savedUser));
-        when(authenticationService.checkAccess(savedUser.getPassword(), savedUser)).thenReturn(true);
+        when(authenticationService.checkAccess(password, savedUser)).thenReturn(true);
 
         AccessException exception = assertThrows(AccessException.class,
-                () -> userService.changePassword(savedUser.getUserName(), savedUser.getPassword(),
-                        userWithInvalidPassword.getPassword()));
+                () -> userService.changePassword(userName, password,
+                        invalidPassword));
 
         verify(userRepo).findByUserName(savedUser.getUserName());
         verify(authenticationService).checkAccess(savedUser.getPassword(), savedUser);
@@ -192,7 +196,7 @@ class UserServiceTest {
     @Test
     void findUserByUsername_WithValidUserName_ShouldReturnUser() {
         String validUserName = savedUser.getUserName();
-        when(userRepo.findByUserNameAndPrefix(eq(validUserName), eq(0))).thenReturn(Optional.of(savedUser));
+        when(userRepo.findByUserNameAndPrefix(validUserName, 0)).thenReturn(Optional.of(savedUser));
 
         Optional<User> result = userService.findUserByUsername(validUserName);
 
@@ -206,8 +210,7 @@ class UserServiceTest {
         User expectedUser = createTestUser(userDtoInput);
         expectedUser.setUserName(userNameWithPrefix);
 
-        when(userRepo.findByUserNameAndPrefix(eq(savedUser.getUserName()), eq(1))).thenReturn(
-                Optional.of(expectedUser));
+        when(userRepo.findByUserNameAndPrefix(savedUser.getUserName(), 1)).thenReturn(Optional.of(expectedUser));
 
         Optional<User> result = userService.findUserByUsername(userNameWithPrefix);
 
@@ -223,7 +226,8 @@ class UserServiceTest {
     @Test
     void findUserByUsername_WithInvalidUserName_ShouldReturnEmpty() {
         String invalidUserName = "nonexistent.user";
-        when(userRepo.findByUserNameAndPrefix(eq(invalidUserName), eq(0))).thenReturn(Optional.empty());
+
+        when(userRepo.findByUserNameAndPrefix(invalidUserName, 0)).thenReturn(Optional.empty());
 
         Optional<User> result = userService.findUserByUsername(invalidUserName);
 

@@ -3,6 +3,7 @@ package org.epam.service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.epam.error.AccessException;
+import org.epam.error.ErrorMessageConstants;
 import org.epam.error.NotFoundException;
 import org.epam.mapper.TraineeMapper;
 import org.epam.model.Trainee;
@@ -44,7 +45,8 @@ public class TraineeServiceImpl implements TraineeService {
         checkUserExisting(traineeDtoInput.getUserId());
 
         List<Trainer> selectedTrainers = trainerRepo.findAllById(traineeDtoInput.getTrainerIds());
-        User user = userRepo.findById(traineeDtoInput.getUserId()).orElseThrow(() -> new AccessException("You don't have access for this."));
+        User user = userRepo.findById(traineeDtoInput.getUserId()).orElseThrow(() -> new AccessException(
+                ErrorMessageConstants.ACCESS_ERROR_MESSAGE));
 
         Trainee traineeToSave = traineeMapper.toEntity(traineeDtoInput);
         traineeToSave.setTrainers(selectedTrainers);
@@ -63,7 +65,7 @@ public class TraineeServiceImpl implements TraineeService {
         User user = getUserByUserName(userName);
         authenticate(password, user);
 
-        Trainee trainee = traineeRepo.findByUserId(user.getId()).orElseThrow(() -> new NotFoundException("Not found"));
+        Trainee trainee = traineeRepo.findByUserId(user.getId()).orElseThrow(() -> new NotFoundException(ErrorMessageConstants.NOT_FOUND_MESSAGE));
 
         return traineeMapper.toDtoOutput(trainee);
     }
@@ -76,7 +78,7 @@ public class TraineeServiceImpl implements TraineeService {
         User user = getUserByUserName(userName);
         authenticate(password, user, traineeDtoInput);
 
-        Trainee trainee = traineeRepo.findByUserId(user.getId()).orElseThrow(() -> new NotFoundException("Not found"));
+        Trainee trainee = traineeRepo.findByUserId(user.getId()).orElseThrow(() -> new NotFoundException(ErrorMessageConstants.NOT_FOUND_MESSAGE));
         traineeMapper.updateTraineeProfile(trainee, traineeDtoInput);
 
         Trainee updatedTrainee = traineeRepo.save(trainee);
@@ -93,7 +95,7 @@ public class TraineeServiceImpl implements TraineeService {
         authenticate(password, user, traineeDtoInput);
 
         List<Trainer> selectedTrainers = trainerRepo.findAllById(traineeDtoInput.getTrainerIds());
-        Trainee trainee = traineeRepo.findByUserId(user.getId()).orElseThrow(() -> new NotFoundException("Not found"));
+        Trainee trainee = traineeRepo.findByUserId(user.getId()).orElseThrow(() -> new NotFoundException(ErrorMessageConstants.NOT_FOUND_MESSAGE));
         trainee.setTrainers(selectedTrainers);
 
         Trainee updatedTrainee = traineeRepo.save(trainee);
@@ -114,24 +116,24 @@ public class TraineeServiceImpl implements TraineeService {
 
     private User getUserByUserName(String userName) {
         return userService.findUserByUsername(userName)
-                       .orElseThrow(() -> new AccessException("You don't have access for this."));
+                       .orElseThrow(() -> new AccessException(ErrorMessageConstants.ACCESS_ERROR_MESSAGE));
     }
 
     public void checkUserExisting(Long id) {
         if (!userRepo.existsById(id)) {
-            throw new AccessException("You don't have access for this.");
+            throw new AccessException(ErrorMessageConstants.ACCESS_ERROR_MESSAGE);
         }
     }
 
     public void authenticate(String password, User user, TraineeDtoInput traineeDtoInput) {
         if (authenticationService.checkAccess(password, user) || !Objects.equals(user.getId(), traineeDtoInput.getId())) {
-            throw new AccessException("You don't have access for this.");
+            throw new AccessException(ErrorMessageConstants.ACCESS_ERROR_MESSAGE);
         }
     }
 
     public void authenticate(String password, User user) {
         if (authenticationService.checkAccess(password, user)) {
-            throw new AccessException("You don't have access for this.");
+            throw new AccessException(ErrorMessageConstants.ACCESS_ERROR_MESSAGE);
         }
     }
 }
