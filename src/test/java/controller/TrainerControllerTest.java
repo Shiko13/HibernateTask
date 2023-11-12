@@ -4,6 +4,7 @@ import org.epam.controller.TrainerController;
 import org.epam.model.dto.TrainerDtoInput;
 import org.epam.model.dto.TrainerDtoOutput;
 import org.epam.model.dto.TrainingTypeOutputDto;
+import org.epam.model.dto.UserDtoInput;
 import org.epam.model.dto.UserDtoOutput;
 import org.epam.service.TrainerService;
 import org.junit.jupiter.api.Test;
@@ -119,7 +120,7 @@ class TrainerControllerTest {
 
     private TrainerDtoInput createTestTrainerDtoInput() {
         TrainerDtoInput trainerDtoInput = new TrainerDtoInput();
-        trainerDtoInput.setUserId(1L);
+        trainerDtoInput.setUser(UserDtoInput.builder().firstName("FirstName").lastName("LastName").isActive(true).build());
         trainerDtoInput.setTrainingTypeId(2L);
         trainerDtoInput.setTraineeIds(Arrays.asList(3L, 4L));
 

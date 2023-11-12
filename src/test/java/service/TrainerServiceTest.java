@@ -9,11 +9,11 @@ import org.epam.model.User;
 import org.epam.model.dto.TrainerDtoInput;
 import org.epam.model.dto.TrainerDtoOutput;
 import org.epam.model.dto.TrainingTypeOutputDto;
+import org.epam.model.dto.UserDtoInput;
 import org.epam.model.dto.UserDtoOutput;
 import org.epam.repo.TraineeRepo;
 import org.epam.repo.TrainerRepo;
 import org.epam.repo.TrainingTypeRepo;
-import org.epam.repo.UserRepo;
 import org.epam.service.AuthenticationService;
 import org.epam.service.TrainerServiceImpl;
 import org.epam.service.UserService;
@@ -46,9 +46,6 @@ class TrainerServiceTest {
 
     @Mock
     private TrainerRepo trainerRepo;
-
-    @Mock
-    private UserRepo userRepo;
 
     @Mock
     private TraineeRepo traineeRepo;
@@ -86,14 +83,13 @@ class TrainerServiceTest {
 
     @Test
     void save_shouldReturnSavedTrainerDtoOutput() {
-        when(userRepo.existsById(user.getId())).thenReturn(true);
-        when(userRepo.findById(user.getId())).thenReturn(Optional.of(user));
         when(trainerRepo.save(trainerToSave)).thenReturn(trainerToSave);
         when(trainerMapper.toEntity(trainerDtoInput)).thenReturn(trainerToSave);
         when(trainerMapper.toDtoOutput(trainerToSave)).thenReturn(savedTrainer);
         when(trainingTypeRepo.findById(trainerDtoInput.getTrainingTypeId())).thenReturn(
                 Optional.ofNullable(trainerToSave.getTrainingType()));
         when(traineeRepo.findAllByIdIn(trainerDtoInput.getTraineeIds())).thenReturn(selectedTrainees);
+        when(userService.save(trainerDtoInput.getUser())).thenReturn(user);
 
         TrainerDtoOutput result = trainerService.save(trainerDtoInput);
 
@@ -136,7 +132,7 @@ class TrainerServiceTest {
 
         assertNotNull(result);
         assertEquals(updatedTrainer.getTrainingTypeId(), result.getTrainingType().getId());
-        assertEquals(updatedTrainer.getUserId(), result.getUser().getId());
+        assertEquals(updatedTrainer.getUser().getLastName(), result.getUser().getLastName());
     }
 
     @Test
@@ -155,7 +151,7 @@ class TrainerServiceTest {
 
         assertNotNull(result);
         assertEquals(updatedTrainer.getTrainingTypeId(), result.getTrainingType().getId());
-        assertEquals(updatedTrainer.getUserId(), result.getUser().getId());
+        assertEquals(updatedTrainer.getUser().getLastName(), result.getUser().getLastName());
     }
 
     @Test
@@ -167,18 +163,16 @@ class TrainerServiceTest {
         when(trainerRepo.findByUserId(user.getId())).thenReturn(Optional.of(trainerToSave));
         when(userService.findUserByUsername(user.getUserName())).thenReturn(Optional.of(user));
 
-        AccessException exception = assertThrows(
-                AccessException.class,
+        AccessException exception = assertThrows(AccessException.class,
                 () -> trainerService.updateProfile(userName, password, updatedTrainer),
-                "An AccessException should be thrown when the user does not exist"
-        );
+                "An AccessException should be thrown when the user does not exist");
 
         assertEquals("You don't have access for this.", exception.getMessage());
     }
 
     @Test
     void getTrainersWithEmptyTrainees_ShouldReturnEmptyList() {
-        when(trainerRepo.findByTraineesIsEmpty()).thenReturn(new ArrayList<>());
+        when(trainerRepo.findByTraineesIsEmptyAndUserIsActiveTrue()).thenReturn(new ArrayList<>());
 
         List<TrainerDtoOutput> result = trainerService.getTrainersWithEmptyTrainees();
 
@@ -190,14 +184,14 @@ class TrainerServiceTest {
     void getTrainersWithEmptyTrainees_ShouldReturnTrainersWithUserDetails() {
         List<Trainer> trainers = createTestTrainers();
 
-        when(trainerRepo.findByTraineesIsEmpty()).thenReturn(trainers);
+        when(trainerRepo.findByTraineesIsEmptyAndUserIsActiveTrue()).thenReturn(trainers);
 
         List<TrainerDtoOutput> result = trainerService.getTrainersWithEmptyTrainees();
 
         assertNotNull(result);
         assertEquals(2, result.size());
 
-        verify(trainerRepo).findByTraineesIsEmpty();
+        verify(trainerRepo).findByTraineesIsEmptyAndUserIsActiveTrue();
     }
 
     @Test
@@ -230,36 +224,11 @@ class TrainerServiceTest {
 
         when(authenticationService.checkAccess(user.getPassword(), user)).thenReturn(false);
 
-        AccessException exception = assertThrows(AccessException.class,
-                () -> trainerService.authenticate(password, user, trainerDtoInput),
-                "An AccessException should be thrown for mismatched IDs");
+        AccessException exception =
+                assertThrows(AccessException.class, () -> trainerService.authenticate(password, user, trainerDtoInput),
+                        "An AccessException should be thrown for mismatched IDs");
 
         verify(authenticationService).checkAccess(user.getPassword(), user);
-
-        assertEquals("You don't have access for this.", exception.getMessage());
-    }
-
-    @Test
-    void checkUserExisting_UserExists_NoExceptionThrown() {
-        when(userRepo.existsById(user.getId())).thenReturn(true);
-
-        assertDoesNotThrow(() -> trainerService.checkUserExisting(user.getId()),
-                "No exception should be thrown when the user exists");
-
-        verify(userRepo).existsById(user.getId());
-    }
-
-    @Test
-    void checkUserExisting_UserDoesNotExist_AccessExceptionThrown() {
-        Long notExistingUserId = user.getId() + 1;
-
-        when(userRepo.existsById(notExistingUserId)).thenReturn(false);
-
-        AccessException exception = assertThrows(AccessException.class,
-                () -> trainerService.checkUserExisting(notExistingUserId),
-                "An AccessException should be thrown when the user does not exist");
-
-        verify(userRepo).existsById(notExistingUserId);
 
         assertEquals("You don't have access for this.", exception.getMessage());
     }
@@ -275,12 +244,12 @@ class TrainerServiceTest {
     }
 
     @Test
-    void authenticate_InvalidPassword_AccessExceptionThrown2() {
+    void authenticateWithTwoArguments_InvalidPassword_AccessExceptionThrown() {
         when(authenticationService.checkAccess("Invalid password", user)).thenReturn(true);
 
-        AccessException exception = assertThrows(AccessException.class,
-                () -> trainerService.authenticate("Invalid password", user),
-                "An AccessException should be thrown for an invalid password");
+        AccessException exception =
+                assertThrows(AccessException.class, () -> trainerService.authenticate("Invalid password", user),
+                        "An AccessException should be thrown for an invalid password");
 
         verify(authenticationService).checkAccess("Invalid password", user);
 
@@ -291,7 +260,11 @@ class TrainerServiceTest {
         return TrainerDtoInput.builder()
                               .id(user.getId())
                               .trainingTypeId(1L)
-                              .userId(user.getId())
+                              .user(UserDtoInput.builder()
+                                                .firstName(user.getFirstName())
+                                                .lastName(user.getLastName())
+                                                .isActive(user.getIsActive())
+                                                .build())
                               .traineeIds(trainees.stream().map(Trainee::getId).collect(Collectors.toList()))
                               .build();
     }
@@ -300,7 +273,11 @@ class TrainerServiceTest {
         return TrainerDtoInput.builder()
                               .id(user.getId())
                               .trainingTypeId(2L)
-                              .userId(user.getId())
+                              .user(UserDtoInput.builder()
+                                                .firstName(user.getFirstName())
+                                                .lastName(user.getLastName())
+                                                .isActive(user.getIsActive())
+                                                .build())
                               .traineeIds(trainees.stream().map(Trainee::getId).collect(Collectors.toList()))
                               .build();
     }

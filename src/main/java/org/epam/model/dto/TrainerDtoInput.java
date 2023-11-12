@@ -23,7 +23,7 @@ public class TrainerDtoInput {
     @NonNull
     private Long trainingTypeId;
 
-    private Long userId;
+    private UserDtoInput user;
 
     private List<Long> traineeIds;
 }

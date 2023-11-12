@@ -13,6 +13,6 @@ public interface TrainerRepo extends JpaRepository<Trainer, Long> {
     Optional<Trainer> findByUserId(Long userId);
 
     @EntityGraph(type = EntityGraph.EntityGraphType.FETCH, value = "trainer-with-users-training-type-and-trainees-graph")
-    List<Trainer> findByTraineesIsEmpty();
+    List<Trainer> findByTraineesIsEmptyAndUserIsActiveTrue();
 
 }

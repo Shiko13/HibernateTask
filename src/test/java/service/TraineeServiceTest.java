@@ -8,10 +8,10 @@ import org.epam.model.Trainer;
 import org.epam.model.User;
 import org.epam.model.dto.TraineeDtoInput;
 import org.epam.model.dto.TraineeDtoOutput;
+import org.epam.model.dto.UserDtoInput;
 import org.epam.model.dto.UserDtoOutput;
 import org.epam.repo.TraineeRepo;
 import org.epam.repo.TrainerRepo;
-import org.epam.repo.UserRepo;
 import org.epam.service.AuthenticationService;
 import org.epam.service.TraineeServiceImpl;
 import org.epam.service.UserService;
@@ -45,9 +45,6 @@ class TraineeServiceTest {
     private TraineeRepo traineeRepo;
 
     @Mock
-    private UserRepo userRepo;
-
-    @Mock
     private TrainerRepo trainerRepo;
 
     @Mock
@@ -79,12 +76,11 @@ class TraineeServiceTest {
 
     @Test
     void save_shouldReturnSavedTraineeDtoOutput() {
-        when(userRepo.existsById(user.getId())).thenReturn(true);
-        when(userRepo.findById(user.getId())).thenReturn(Optional.of(user));
         when(trainerRepo.findAllById(traineeDtoInput.getTrainerIds())).thenReturn(selectedTrainers);
         when(traineeRepo.save(traineeToSave)).thenReturn(traineeToSave);
         when(traineeMapper.toEntity(traineeDtoInput)).thenReturn(traineeToSave);
         when(traineeMapper.toDtoOutput(traineeToSave)).thenReturn(savedTrainee);
+        when(userService.save(traineeDtoInput.getUser())).thenReturn(user);
 
         TraineeDtoOutput result = traineeService.save(traineeDtoInput);
 
@@ -120,11 +116,8 @@ class TraineeServiceTest {
         when(authenticationService.checkAccess(user.getPassword(), user)).thenReturn(false);
         when(userService.findUserByUsername(user.getUserName())).thenReturn(Optional.ofNullable(user));
 
-        assertThrows(
-                NotFoundException.class,
-                () -> traineeService.getByUserName(userName, password),
-                "A NotFoundException should be thrown."
-        );
+        assertThrows(NotFoundException.class, () -> traineeService.getByUserName(userName, password),
+                "A NotFoundException should be thrown.");
     }
 
     @Test
@@ -143,7 +136,7 @@ class TraineeServiceTest {
         assertNotNull(result);
         assertEquals(updatedTrainee.getDateOfBirth(), result.getDateOfBirth());
         assertEquals(updatedTrainee.getAddress(), result.getAddress());
-        assertEquals(updatedTrainee.getUserId(), result.getUser().getId());
+        assertEquals(updatedTrainee.getUser().getLastName(), result.getUser().getLastName());
     }
 
     @Test
@@ -172,7 +165,8 @@ class TraineeServiceTest {
         when(userService.findUserByUsername(user.getUserName())).thenReturn(Optional.of(user));
         when(traineeMapper.toDtoOutput(traineeToSave)).thenReturn(savedTrainee);
 
-        TraineeDtoOutput result = traineeService.updateTrainerList(user.getUserName(), user.getPassword(), traineeDtoInput);
+        TraineeDtoOutput result =
+                traineeService.updateTrainerList(user.getUserName(), user.getPassword(), traineeDtoInput);
 
         assertNotNull(result);
         assertEquals(updatedTrainerIds, savedTrainee.getTrainerIds());
@@ -208,38 +202,11 @@ class TraineeServiceTest {
 
         when(authenticationService.checkAccess(user.getPassword(), user)).thenReturn(false);
 
-        AccessException exception = assertThrows(
-                AccessException.class,
-                () -> traineeService.authenticate(password, user, traineeDtoInput),
-                "An AccessException should be thrown for mismatched IDs"
-        );
+        AccessException exception =
+                assertThrows(AccessException.class, () -> traineeService.authenticate(password, user, traineeDtoInput),
+                        "An AccessException should be thrown for mismatched IDs");
 
         verify(authenticationService).checkAccess(user.getPassword(), user);
-
-        assertEquals("You don't have access for this.", exception.getMessage());
-    }
-
-    @Test
-    void checkUserExisting_UserExists_NoExceptionThrown() {
-        when(userRepo.existsById(user.getId())).thenReturn(true);
-
-        assertDoesNotThrow(() -> traineeService.checkUserExisting(user.getId()),
-                "No exception should be thrown when the user exists");
-
-        verify(userRepo).existsById(user.getId());
-    }
-
-    @Test
-    void checkUserExisting_UserDoesNotExist_AccessExceptionThrown() {
-        Long notExistingUserId = user.getId() + 1;
-
-        when(userRepo.existsById(notExistingUserId)).thenReturn(false);
-
-        AccessException exception = assertThrows(AccessException.class,
-                () -> traineeService.checkUserExisting(notExistingUserId),
-                "An AccessException should be thrown when the user does not exist");
-
-        verify(userRepo).existsById(notExistingUserId);
 
         assertEquals("You don't have access for this.", exception.getMessage());
     }
@@ -258,9 +225,9 @@ class TraineeServiceTest {
     void authenticate_InvalidPassword_AccessExceptionThrown2() {
         when(authenticationService.checkAccess("Invalid password", user)).thenReturn(true);
 
-        AccessException exception = assertThrows(AccessException.class,
-                () -> traineeService.authenticate("Invalid password", user),
-                "An AccessException should be thrown for an invalid password");
+        AccessException exception =
+                assertThrows(AccessException.class, () -> traineeService.authenticate("Invalid password", user),
+                        "An AccessException should be thrown for an invalid password");
 
         verify(authenticationService).checkAccess("Invalid password", user);
 
@@ -272,7 +239,11 @@ class TraineeServiceTest {
                               .id(user.getId())
                               .dateOfBirth(LocalDate.of(1985, 5, 7))
                               .address("Common street 53")
-                              .userId(user.getId())
+                              .user(UserDtoInput.builder()
+                                                .firstName(user.getFirstName())
+                                                .lastName(user.getLastName())
+                                                .isActive(user.getIsActive())
+                                                .build())
                               .trainerIds(trainers.stream().map(Trainer::getId).collect(Collectors.toList()))
                               .build();
     }
@@ -282,7 +253,11 @@ class TraineeServiceTest {
                               .id(user.getId())
                               .dateOfBirth(LocalDate.of(1987, 7, 7))
                               .address("Api street 49")
-                              .userId(user.getId())
+                              .user(UserDtoInput.builder()
+                                                .firstName(user.getFirstName())
+                                                .lastName(user.getLastName())
+                                                .isActive(user.getIsActive())
+                                                .build())
                               .trainerIds(trainers.stream().map(Trainer::getId).collect(Collectors.toList()))
                               .build();
     }

@@ -13,7 +13,6 @@ import org.epam.model.dto.TraineeDtoInput;
 import org.epam.model.dto.TraineeDtoOutput;
 import org.epam.repo.TraineeRepo;
 import org.epam.repo.TrainerRepo;
-import org.epam.repo.UserRepo;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,8 +25,6 @@ import java.util.Objects;
 public class TraineeServiceImpl implements TraineeService {
 
     private final TraineeRepo traineeRepo;
-
-    private final UserRepo userRepo;
 
     private final TrainerRepo trainerRepo;
 
@@ -42,11 +39,10 @@ public class TraineeServiceImpl implements TraineeService {
     public TraineeDtoOutput save(TraineeDtoInput traineeDtoInput) {
         log.info("save, traineeDtoInput = {}", traineeDtoInput);
 
-        checkUserExisting(traineeDtoInput.getUserId());
+        User user = userService.save(traineeDtoInput.getUser());
+        traineeDtoInput.setId(user.getId());
 
         List<Trainer> selectedTrainers = trainerRepo.findAllById(traineeDtoInput.getTrainerIds());
-        User user = userRepo.findById(traineeDtoInput.getUserId()).orElseThrow(() -> new AccessException(
-                ErrorMessageConstants.ACCESS_ERROR_MESSAGE));
 
         Trainee traineeToSave = traineeMapper.toEntity(traineeDtoInput);
         traineeToSave.setTrainers(selectedTrainers);
@@ -65,7 +61,8 @@ public class TraineeServiceImpl implements TraineeService {
         User user = getUserByUserName(userName);
         authenticate(password, user);
 
-        Trainee trainee = traineeRepo.findByUserId(user.getId()).orElseThrow(() -> new NotFoundException(ErrorMessageConstants.NOT_FOUND_MESSAGE));
+        Trainee trainee = traineeRepo.findByUserId(user.getId())
+                                     .orElseThrow(() -> new NotFoundException(ErrorMessageConstants.NOT_FOUND_MESSAGE));
 
         return traineeMapper.toDtoOutput(trainee);
     }
@@ -78,7 +75,8 @@ public class TraineeServiceImpl implements TraineeService {
         User user = getUserByUserName(userName);
         authenticate(password, user, traineeDtoInput);
 
-        Trainee trainee = traineeRepo.findByUserId(user.getId()).orElseThrow(() -> new NotFoundException(ErrorMessageConstants.NOT_FOUND_MESSAGE));
+        Trainee trainee = traineeRepo.findByUserId(user.getId())
+                                     .orElseThrow(() -> new NotFoundException(ErrorMessageConstants.NOT_FOUND_MESSAGE));
         traineeMapper.updateTraineeProfile(trainee, traineeDtoInput);
 
         Trainee updatedTrainee = traineeRepo.save(trainee);
@@ -95,7 +93,8 @@ public class TraineeServiceImpl implements TraineeService {
         authenticate(password, user, traineeDtoInput);
 
         List<Trainer> selectedTrainers = trainerRepo.findAllById(traineeDtoInput.getTrainerIds());
-        Trainee trainee = traineeRepo.findByUserId(user.getId()).orElseThrow(() -> new NotFoundException(ErrorMessageConstants.NOT_FOUND_MESSAGE));
+        Trainee trainee = traineeRepo.findByUserId(user.getId())
+                                     .orElseThrow(() -> new NotFoundException(ErrorMessageConstants.NOT_FOUND_MESSAGE));
         trainee.setTrainers(selectedTrainers);
 
         Trainee updatedTrainee = traineeRepo.save(trainee);
@@ -116,17 +115,12 @@ public class TraineeServiceImpl implements TraineeService {
 
     private User getUserByUserName(String userName) {
         return userService.findUserByUsername(userName)
-                       .orElseThrow(() -> new AccessException(ErrorMessageConstants.ACCESS_ERROR_MESSAGE));
-    }
-
-    public void checkUserExisting(Long id) {
-        if (!userRepo.existsById(id)) {
-            throw new AccessException(ErrorMessageConstants.ACCESS_ERROR_MESSAGE);
-        }
+                          .orElseThrow(() -> new AccessException(ErrorMessageConstants.ACCESS_ERROR_MESSAGE));
     }
 
     public void authenticate(String password, User user, TraineeDtoInput traineeDtoInput) {
-        if (authenticationService.checkAccess(password, user) || !Objects.equals(user.getId(), traineeDtoInput.getId())) {
+        if (authenticationService.checkAccess(password, user) ||
+                !Objects.equals(user.getId(), traineeDtoInput.getId())) {
             throw new AccessException(ErrorMessageConstants.ACCESS_ERROR_MESSAGE);
         }
     }

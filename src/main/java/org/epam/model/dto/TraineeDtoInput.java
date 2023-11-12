@@ -28,7 +28,7 @@ public class TraineeDtoInput {
     private String address;
 
     @NonNull
-    private Long userId;
+    private UserDtoInput user;
 
     private List<Long> trainerIds;
 }

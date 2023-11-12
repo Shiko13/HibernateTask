@@ -3,6 +3,7 @@ package controller;
 import org.epam.controller.TraineeController;
 import org.epam.model.dto.TraineeDtoInput;
 import org.epam.model.dto.TraineeDtoOutput;
+import org.epam.model.dto.UserDtoInput;
 import org.epam.service.TraineeService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -100,13 +101,16 @@ class TraineeControllerTest {
     }
 
     public TraineeDtoInput createTestTraineeDtoInput() {
-        TraineeDtoInput traineeDtoInput = new TraineeDtoInput();
-        traineeDtoInput.setDateOfBirth(LocalDate.of(1990, 5, 15));
-        traineeDtoInput.setAddress("123 Main Street");
-        traineeDtoInput.setUserId(1L);
-        traineeDtoInput.setTrainerIds(Arrays.asList(2L, 3L, 4L));
-
-        return traineeDtoInput;
+        return TraineeDtoInput.builder()
+                              .dateOfBirth(LocalDate.of(1990, 5, 15))
+                              .address("123 Main Street")
+                              .user(UserDtoInput.builder()
+                                                .firstName("FirstName")
+                                                .lastName("LastName")
+                                                .isActive(true)
+                                                .build())
+                              .trainerIds(Arrays.asList(2L, 3L, 4L))
+                              .build();
     }
 
     public TraineeDtoOutput createExpectedTraineeDtoOutput() {

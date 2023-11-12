@@ -32,11 +32,10 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public UserDtoOutput save(UserDtoInput userDtoInput) {
+    public User save(UserDtoInput userDtoInput) {
         log.info("save, userDtoInput = {}", userDtoInput);
-        User user = userRepo.save(createEntireUser(userDtoInput));
 
-        return userMapper.toDto(user);
+        return userRepo.save(createEntireUser(userDtoInput));
     }
 
     @Override

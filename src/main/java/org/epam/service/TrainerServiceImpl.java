@@ -15,7 +15,6 @@ import org.epam.model.dto.TrainerDtoOutput;
 import org.epam.repo.TraineeRepo;
 import org.epam.repo.TrainerRepo;
 import org.epam.repo.TrainingTypeRepo;
-import org.epam.repo.UserRepo;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,8 +29,6 @@ import java.util.stream.Collectors;
 public class TrainerServiceImpl implements TrainerService {
 
     private final TrainerRepo trainerRepo;
-
-    private final UserRepo userRepo;
 
     private final TraineeRepo traineeRepo;
 
@@ -49,11 +46,10 @@ public class TrainerServiceImpl implements TrainerService {
     public TrainerDtoOutput save(TrainerDtoInput trainerDtoInput) {
         log.info("save, trainerDtoInput = {}", trainerDtoInput);
 
-        checkUserExisting(trainerDtoInput.getUserId());
+        User user = userService.save(trainerDtoInput.getUser());
+        trainerDtoInput.setId(user.getId());
 
         List<Trainee> selectedTrainees = traineeRepo.findAllByIdIn(trainerDtoInput.getTraineeIds());
-        User user = userRepo.findById(trainerDtoInput.getUserId())
-                            .orElseThrow(() -> new AccessException(ErrorMessageConstants.ACCESS_ERROR_MESSAGE));
         TrainingType trainingType = trainingTypeRepo.findById(trainerDtoInput.getTrainingTypeId())
                                                     .orElseThrow(() -> new AccessException(
                                                             ErrorMessageConstants.ACCESS_ERROR_MESSAGE));
@@ -77,7 +73,8 @@ public class TrainerServiceImpl implements TrainerService {
         User user = getUserByUserName(userName);
         authenticate(password, user);
 
-        Trainer trainer = trainerRepo.findByUserId(user.getId()).orElseThrow(() -> new NotFoundException(ErrorMessageConstants.NOT_FOUND_MESSAGE));
+        Trainer trainer = trainerRepo.findByUserId(user.getId())
+                                     .orElseThrow(() -> new NotFoundException(ErrorMessageConstants.NOT_FOUND_MESSAGE));
 
         return trainerMapper.toDtoOutput(trainer);
     }
@@ -90,7 +87,8 @@ public class TrainerServiceImpl implements TrainerService {
         User user = getUserByUserName(userName);
         authenticate(password, user, trainerDtoInput);
 
-        Trainer trainer = trainerRepo.findByUserId(user.getId()).orElseThrow(() -> new NotFoundException(ErrorMessageConstants.NOT_FOUND_MESSAGE));
+        Trainer trainer = trainerRepo.findByUserId(user.getId())
+                                     .orElseThrow(() -> new NotFoundException(ErrorMessageConstants.NOT_FOUND_MESSAGE));
 
         if (!trainerDtoInput.getTrainingTypeId().equals(trainer.getTrainingType().getId())) {
             TrainingType trainingType = trainingTypeRepo.findById(trainerDtoInput.getTrainingTypeId())
@@ -108,15 +106,13 @@ public class TrainerServiceImpl implements TrainerService {
     public List<TrainerDtoOutput> getTrainersWithEmptyTrainees() {
         log.info("getTrainersWithEmptyTrainees");
 
-        List<Trainer> trainers = trainerRepo.findByTraineesIsEmpty();
+        List<Trainer> trainers = trainerRepo.findByTraineesIsEmptyAndUserIsActiveTrue();
 
         if (trainers.isEmpty()) {
             return new ArrayList<>();
         }
 
-        return trainers.stream()
-                       .map(trainerMapper::toDtoOutput)
-                       .collect(Collectors.toList());
+        return trainers.stream().map(trainerMapper::toDtoOutput).collect(Collectors.toList());
     }
 
     private User getUserByUserName(String userName) {
@@ -125,19 +121,14 @@ public class TrainerServiceImpl implements TrainerService {
     }
 
     public void authenticate(String password, User user, TrainerDtoInput trainerDtoInput) {
-        if (authenticationService.checkAccess(password, user) || !Objects.equals(user.getId(), trainerDtoInput.getId())) {
+        if (authenticationService.checkAccess(password, user) ||
+                !Objects.equals(user.getId(), trainerDtoInput.getId())) {
             throw new AccessException(ErrorMessageConstants.ACCESS_ERROR_MESSAGE);
         }
     }
 
     public void authenticate(String password, User user) {
         if (authenticationService.checkAccess(password, user)) {
-            throw new AccessException(ErrorMessageConstants.ACCESS_ERROR_MESSAGE);
-        }
-    }
-
-    public void checkUserExisting(Long id) {
-        if (!userRepo.existsById(id)) {
             throw new AccessException(ErrorMessageConstants.ACCESS_ERROR_MESSAGE);
         }
     }

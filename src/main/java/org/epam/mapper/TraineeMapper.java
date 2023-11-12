@@ -15,7 +15,6 @@ public interface TraineeMapper {
 
     TraineeDtoInput toDto(Trainee trainee);
 
-    @Mapping(target = "id", source = "userId")
     Trainee toEntity(TraineeDtoInput traineeDtoInput);
 
     @Mapping(target = "trainerIds", source = "trainers")

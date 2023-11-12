@@ -58,9 +58,8 @@ class UserServiceTest {
     @Test
     void save_shouldCreateAndReturnUserDtoOutput() {
         when(userRepo.save(any(User.class))).thenReturn(savedUser);
-        when(userMapper.toDto(savedUser)).thenReturn(userDtoOutput);
 
-        UserDtoOutput result = userService.save(userDtoInput);
+        User result = userService.save(userDtoInput);
 
         assertNotNull(result);
         assertEquals(userDtoInput.getFirstName(), result.getFirstName());

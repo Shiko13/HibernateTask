@@ -8,7 +8,7 @@ import java.util.Optional;
 
 public interface UserService {
 
-    UserDtoOutput save(UserDtoInput userDtoInput);
+    User save(UserDtoInput userDtoInput);
 
     UserDtoOutput changePassword(String userName, String oldPassword, String newPassword);
 

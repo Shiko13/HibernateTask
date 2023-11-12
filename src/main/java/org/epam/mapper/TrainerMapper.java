@@ -14,7 +14,7 @@ public interface TrainerMapper {
 
     TrainerDtoInput toDto(Trainer trainer);
 
-    @Mapping(target = "id", source = "userId")
+//    @Mapping(target = "id", source = "user")
     Trainer toEntity(TrainerDtoInput trainerDtoInput);
 
     @Mapping(target = "traineeIds", source = "trainees")
