@@ -11,6 +11,7 @@ import jakarta.persistence.ManyToMany;
 import jakarta.persistence.MapsId;
 import jakarta.persistence.NamedAttributeNode;
 import jakarta.persistence.NamedEntityGraph;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
@@ -52,4 +53,7 @@ public class Trainee {
     @JoinTable(name = "trainee_trainer", joinColumns = @JoinColumn(name = "trainee_id"),
                inverseJoinColumns = @JoinColumn(name = "trainer_id"))
     private List<Trainer> trainers;
+
+    @OneToMany(mappedBy = "trainee", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Training> trainings;
 }

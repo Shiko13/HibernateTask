@@ -130,8 +130,13 @@ class TrainingServiceTest {
         return Training.builder()
                        .id(1L)
                        .trainee(
-                               new Trainee(trainingDtoInput.getTraineeId(), LocalDate.of(2001, 4, 5), "Baker street 50",
-                                       user1, new ArrayList<>()))
+                               Trainee.builder()
+                                       .id(trainingDtoInput.getTraineeId())
+                                       .dateOfBirth(LocalDate.of(2001, 4, 5))
+                                       .address("Baker street 50")
+                                       .user(user1)
+                                       .trainers(new ArrayList<>())
+                                      .build())
                        .trainer(new Trainer(trainingDtoInput.getTrainerId(), trainingType, user2, new ArrayList<>()))
                        .name(trainingDtoInput.getName())
                        .trainingType(trainingType)
